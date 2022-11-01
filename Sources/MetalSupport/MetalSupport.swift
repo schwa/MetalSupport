@@ -1,6 +1,9 @@
-public struct MetalSupport {
-    public private(set) var text = "Hello, World!"
 
-    public init() {
-    }
+
+public enum MetalSupportError: Error {
+    case illegalValue
+}
+
+internal func fatal(error: Error)  -> Never {
+    fatalError("\(error)")
 }
