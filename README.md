@@ -1,3 +1,5 @@
 # MetalSupport
 
-A description of this package.
+A micro-package to make working with Metal somewhat nicer.
+
+(Broken out from https://github.com/schwa/Everything)
