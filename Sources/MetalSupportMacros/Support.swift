@@ -1,5 +1,9 @@
 import SwiftSyntax
 
+enum MacroError: Error {
+    case generic(String)
+}
+
 extension VariableDeclSyntax {
   /// Determine whether this variable has the syntax of a stored property.
   ///

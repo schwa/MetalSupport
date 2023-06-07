@@ -37,5 +37,10 @@ let package = Package(
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ]
         ),
+        .executableTarget(
+            name: "MetalSupportDemo",
+            dependencies: [
+                "MetalSupport"
+            ])
     ]
 )

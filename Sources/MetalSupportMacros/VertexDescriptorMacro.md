@@ -6,6 +6,18 @@ The ``VertexDescriptor`` and ``VertexAttribute`` macros work in tandem to provid
 
 Add the ``@VertexDescriptor`` macro decorator to any swift struct to add automatic conformance to the ``VertexDescriptorProviding`` protocol. The swift struct must only contain simple types that are compatible with Metal and/or SIMD. The macro will then infer the vertex attributes for all member variables within the struct. You can also use the ``@VertexAttribute`` macro decorator to specify the format of a member variable if the ``VertexDescriptor`` macro can't infer it.
 
+## TODO
+
+Questions for Swift folks:
+
+* Parsing types - i'm doing string matching for stuff like `case "SIMD4<Float>"` but that can also be represented a zillion otherwise way - are there better solutions (my @VertexAttribute was provided to help fix that but it's boilerplate)
+* It would be nice if macro expansions could interact. Would like an expansion to automatically decorate members with @VertexAttribute and have @VertexDescriptor pick it up
+* ConformanceMacro just doesn't fire.
+* Current code has VertexDescriptor doing all the work - processing members and processing member attributes - doing a lot of heavy lifting - any better solution?
+* As macros become popular lots of (OSS) packages will depend on SwiftSyntax - what versioning problems/mitigations should we expect?
+* I'm doing a lot of manual graph logic, a lot of `.as()` and mapping/testing for nodes in syntax graph - would love to see a Swift Regex style result builder query language to reduce a lot of the macro grunt work.
+
+
 ## Example
 
 This input...
@@ -39,7 +51,7 @@ struct MyVertex: VertexDescriptorProviding {
     var texture: SIMD2<Float>
 
     static let descriptor: MTLVertexDescriptor {
-        let d = MTLVertexDescriptor()
+        var d = MTLVertexDescriptor()
         // Attribute for ``position``: ``SIMD3<Float>``
         d.attributes[0].format = .float3
         d.attributes[0].offset = 0

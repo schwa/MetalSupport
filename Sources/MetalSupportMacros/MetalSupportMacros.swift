@@ -5,8 +5,12 @@ import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftDiagnostics
 
-enum MacroError: Error {
-    case generic(String)
+@main
+struct MetalSupportMacrosPlugin: CompilerPlugin {
+    let providingMacros: [Macro.Type] = [
+        VertexDescriptorMacro.self,
+        VertexAttributeMacro.self,
+    ]
 }
 
 // MARK: -
@@ -42,7 +46,8 @@ extension VertexDescriptorMacro: MemberMacro {
 
 extension VertexDescriptorMacro: ConformanceMacro {
     public static func expansion(of node: AttributeSyntax, providingConformancesOf declaration: some DeclGroupSyntax, in context: some MacroExpansionContext) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
-        [("VertexDescriptorProvider", nil)]
+        print("#####", Self.self, #function)
+        return [("VertexDescriptorProvider", nil)]
     }
 }
 
@@ -56,16 +61,6 @@ extension VertexAttributeMacro: MemberMacro {
         print(#function)
         return []
     }
-}
-
-// MARK: -
-
-@main
-struct MetalSupportMacrosPlugin: CompilerPlugin {
-    let providingMacros: [Macro.Type] = [
-        VertexDescriptorMacro.self,
-        VertexAttributeMacro.self,
-    ]
 }
 
 // MARK: -
@@ -84,7 +79,7 @@ struct VertexDescriptor {
             "\(raw:name).layouts[\(raw: bufferIndex)].stride = \(raw: size)"
         }
         return ["""
-        static let descriptor: MTLVertexDescriptor {
+        static var vertexDescriptor: MTLVertexDescriptor {
             let \(raw:name) = MTLVertexDescriptor()
         """]
         + attributeDecls
@@ -110,7 +105,7 @@ struct VertexAttribute {
     func source(descriptorName: String, index: Int, offset: Int) -> [DeclSyntax] {
         return ["""
             // Attribute for ``\(raw: name)``: ``\(raw: type)``
-            \(raw: descriptorName).attributes[\(raw: index)].format = \(raw: format)
+            \(raw: descriptorName).attributes[\(raw: index)].format = \(raw: format.caseName)
             \(raw: descriptorName).attributes[\(raw: index)].offset = \(raw: offset)
             \(raw: descriptorName).attributes[\(raw: index)].bufferIndex = \(raw: bufferIndex)
         """]
@@ -149,45 +144,74 @@ extension VertexAttribute {
                         bufferIndex = Int(element.expression.description)!
                     }
                     else {
-                        switch element.expression.description {
-                        case ".float2":
-                            format = .float2
-                        case ".float3":
-                            format = .float3
-                        case ".float4":
-                            format = .float4
-                        default:
-                            fatalError()
-                        }
+                        format = MTLVertexFormat(caseName: element.expression.description)
                     }
                 }
             }
-
-            // TODO: Buffer index
         }
 
-        if format == nil {
-            switch type {
-            case "SIMD2<Float>":
-                format = .float2
-            case "SIMD3<Float>":
-                format = .float3
-            case "SIMD4<Float>":
-                format = .float4
-            default:
-                throw MacroError.generic("Unknown type")
+        if let format {
+
+            if let expectedFormat = MTLVertexFormat(swiftType: type), expectedFormat != MTLVertexFormat(swiftType: type) {
+                throw MacroError.generic("Mismatched types.")
             }
+        }
+        else {
+            format = MTLVertexFormat(swiftType: type)
         }
 
         self.name = name
         self.type = type
-        self.format = format!
-        self.size = format!.size
+        guard let format else {
+            throw MacroError.generic("Could not infer vertex format.")
+        }
+        self.format = format
+        self.size = format.size
         self.bufferIndex = bufferIndex
     }
 }
 
 extension MTLVertexFormat {
+
+    init?(swiftType string: String) {
+        switch string {
+        case "SIMD2<Float>":
+            self = .float2
+        case "SIMD3<Float>":
+            self = .float3
+        case "SIMD4<Float>":
+            self = .float4
+        default:
+            return nil
+        }
+    }
+
+    init?(caseName string: String) {
+        switch string {
+        case ".float2":
+            self = .float2
+        case ".float3":
+            self = .float3
+        case ".float4":
+            self = .float4
+        default:
+            return nil
+        }
+    }
+
+    var caseName: String {
+        switch self {
+        case .float2:
+            ".float2"
+        case .float3:
+            ".float3"
+        case .float4:
+            ".float4"
+        default:
+            fatalError()
+        }
+    }
+
     var size: Int {
         switch self {
         case .float2:
