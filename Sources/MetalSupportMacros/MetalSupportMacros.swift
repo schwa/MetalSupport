@@ -41,7 +41,7 @@ extension VertexDescriptorMacro: MemberMacro {
 }
 
 extension VertexDescriptorMacro: ConformanceMacro {
-    public static func expansion<Declaration, Context>(of node: AttributeSyntax, providingConformancesOf declaration: Declaration, in context: Context) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] where Declaration : DeclGroupSyntax, Context : MacroExpansionContext {
+    public static func expansion(of node: AttributeSyntax, providingConformancesOf declaration: some DeclGroupSyntax, in context: some MacroExpansionContext) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
         [("VertexDescriptorProvider", nil)]
     }
 }
@@ -110,7 +110,7 @@ struct VertexAttribute {
             // Attribute for ``\(raw: name)``: ``\(raw: type)``
             \(raw: descriptorName).attributes[\(raw: index)].format = \(raw: format)
             \(raw: descriptorName).attributes[\(raw: index)].offset = \(raw: offset)
-            \(raw: descriptorName).attributes[\(raw: index)].bufferIndex = \(raw: index)
+            \(raw: descriptorName).attributes[\(raw: index)].bufferIndex = \(raw: bufferIndex)
         """]
     }
 }
@@ -129,7 +129,7 @@ extension VertexAttribute {
         }
 
         var format: MTLVertexFormat?
-        var bufferIndex: Int = -1
+        var bufferIndex: Int = 0
 
         let vertexAttributeSyntax = variableDecl.attributes?.first(where: { element in
             guard let attributeSyntax = element.as(AttributeSyntax.self) else {
@@ -148,6 +148,8 @@ extension VertexAttribute {
                     }
                     else {
                         switch element.expression.description {
+                        case ".float2":
+                            format = .float2
                         case ".float3":
                             format = .float3
                         case ".float4":
@@ -164,6 +166,8 @@ extension VertexAttribute {
 
         if format == nil {
             switch type {
+            case "SIMD2<Float>":
+                format = .float2
             case "SIMD3<Float>":
                 format = .float3
             case "SIMD4<Float>":
@@ -184,6 +188,8 @@ extension VertexAttribute {
 extension MTLVertexFormat {
     var size: Int {
         switch self {
+        case .float2:
+            return 2 * MemoryLayout<Float>.stride // Do not use size of SIMD3<Float>
         case .float3:
             return 3 * MemoryLayout<Float>.stride // Do not use size of SIMD3<Float>
         case .float4:
