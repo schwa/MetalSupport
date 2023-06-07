@@ -7,6 +7,7 @@ import MetalSupportMacros
 let testMacros: [String: Macro.Type] = [
     "VertexDescriptor": VertexDescriptorMacro.self,
     "VertexAttribute": VertexDescriptorMacro.self,
+    "VertexBufferLayout": VertexBufferLayoutMacro.self,
 ]
 
 final class VertexDescriptorMacroTests: XCTestCase {
@@ -34,9 +35,14 @@ final class VertexDescriptorMacroTests: XCTestCase {
     func testMacroBareAttributes() {
         assertMacroExpansion(
             """
-            @VertexDescriptor
+            @VertexDescriptor()
             struct MyVertex {
-                var color: SIMD4<Float>
+                var position: SIMD3<Float>
+                var normal: SIMD3<Float>
+                var ambient: SIMD3<Float>
+                var specular: SIMD3<Float>
+                var texture: SIMD2<Float>
+                var opacity: Float
             }
             """,
             expandedSource: """
@@ -57,6 +63,38 @@ final class VertexDescriptorMacroTests: XCTestCase {
             macros: testMacros
         )
     }
+
+    func testVertexBufferLayout() {
+        assertMacroExpansion(
+            """
+            @VertexDescriptor
+            struct MyVertex {
+                @VertexAttribute
+                var color: SIMD4<Float>
+
+                #VertexBufferLayout(index: 0)
+            }
+            """,
+            expandedSource: """
+
+            struct MyVertex {
+                var color: SIMD4<Float>
+                static var vertexDescriptor: MTLVertexDescriptor {
+                    let d = MTLVertexDescriptor()
+                // Attribute for ``color``: ``SIMD4<Float>``
+                d.attributes[0].format = .float4
+                d.attributes[0].offset = 0
+                d.attributes[0].bufferIndex = 0
+                d.layouts[0].stride = 16
+                return d
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+
 
 //    func testMacro() {
 //        assertMacroExpansion(

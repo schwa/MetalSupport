@@ -28,6 +28,9 @@ let package = Package(
             dependencies: [
                 "MetalSupport",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-Xfrontend", "-dump-macro-expansions"])
             ]
         ),
         .macro(
@@ -35,12 +38,19 @@ let package = Package(
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-Xfrontend", "-dump-macro-expansions"])
             ]
         ),
         .executableTarget(
             name: "MetalSupportDemo",
             dependencies: [
                 "MetalSupport"
-            ])
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-Xfrontend", "-dump-macro-expansions"])
+            ]
+        )
     ]
 )

@@ -17,8 +17,26 @@ Questions for Swift folks:
 * As macros become popular lots of (OSS) packages will depend on SwiftSyntax - what versioning problems/mitigations should we expect?
 * I'm doing a lot of manual graph logic, a lot of `.as()` and mapping/testing for nodes in syntax graph - would love to see a Swift Regex style result builder query language to reduce a lot of the macro grunt work.
 
+-Xfrontend -dump-macro-expansions
+
 
 ## Example
+
+Simple example. For most common use-cases this should be all your need. Just decorate your vertex type with ``@VertexDescriptor`` and it will try to infer all the properties.
+
+```swift
+@VertexDescriptor
+struct MyVertex {
+    var position: SIMD3<Float>
+    var normal: SIMD3<Float>
+    var ambient: SIMD3<Float>
+    var specular: SIMD3<Float>
+    var texture: SIMD2<Float>
+    var opacity: Float
+}
+
+
+
 
 This input...
 

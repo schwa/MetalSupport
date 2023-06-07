@@ -29,9 +29,9 @@ extension VertexDescriptorMacro: MemberMacro {
     public static func expansion(of node: AttributeSyntax, providingMembersOf declaration: some DeclGroupSyntax, in context: some MacroExpansionContext) throws -> [DeclSyntax] {
         print("#####", Self.self, #function)
         guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-            //            context.diagnose(Diagnostic(node: node, message: )
-            //            return []
-            throw MacroError.generic("@\(node.attributeName) can only be applied to a struct")
+            context.diagnose(Diagnostic(node: declaration.as(Syntax.self)!, message: MetalSupportDiagnostic.generic("@\(node.attributeName) can only be applied to a struct")))
+                return []
+//            throw MacroError.generic("@\(node.attributeName) can only be applied to a struct")
         }
         let attributes = try structDecl.memberBlock.members.compactMap { member -> VertexAttribute? in
             guard let variableDecl = member.decl.as(VariableDeclSyntax.self) else {
@@ -39,7 +39,31 @@ extension VertexDescriptorMacro: MemberMacro {
             }
             return try VertexAttribute(variableDecl)
         }
-        let descriptor = VertexDescriptor(attributes: attributes)
+
+        let bufferLayouts = try structDecl.memberBlock.members.compactMap { member -> VertexBufferLayout? in
+            guard let macroExpansionDecl = member.decl.as(MacroExpansionDeclSyntax.self) else {
+                return nil
+            }
+            guard macroExpansionDecl.macro.trimmedDescription == "VertexBufferLayout" else {
+                return nil
+            }
+            guard let index = macroExpansionDecl.argumentList.element(labeled: "index") else {
+                throw MacroError.generic("No index in VertexBufferLayout")
+            }
+            var bufferLayout = VertexBufferLayout(index: Int(index.trimmedDescription)!) // TODO: Bang
+            if let stride = macroExpansionDecl.argumentList.element(labeled: "stride") {
+                bufferLayout.stride = UInt(stride.trimmedDescription)! // TODO: Bang
+            }
+            if let stepFunction = macroExpansionDecl.argumentList.element(labeled: "stepFunction") {
+                fatalError()
+                bufferLayout.stepFunction = nil
+            }
+            if let stepRate = macroExpansionDecl.argumentList.element(labeled: "stepRate") {
+                bufferLayout.stepRate = UInt(stepRate.trimmedDescription)! // TODO: Bang
+            }
+            return bufferLayout
+        }
+        let descriptor = VertexDescriptor(attributes: attributes, bufferLayouts: bufferLayouts)
         return descriptor.source(name: "d")
     }
 }
@@ -48,6 +72,18 @@ extension VertexDescriptorMacro: ConformanceMacro {
     public static func expansion(of node: AttributeSyntax, providingConformancesOf declaration: some DeclGroupSyntax, in context: some MacroExpansionContext) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
         print("#####", Self.self, #function)
         return [("VertexDescriptorProvider", nil)]
+    }
+}
+
+// MARK: -
+
+public struct VertexBufferLayoutMacro {
+}
+
+extension VertexBufferLayoutMacro: DeclarationMacro {
+    public static func expansion(of node: some FreestandingMacroExpansionSyntax, in context: some MacroExpansionContext) throws -> [DeclSyntax] {
+        // This implementation intentionally left blank.
+        return []
     }
 }
 
@@ -67,23 +103,37 @@ extension VertexAttributeMacro: MemberMacro {
 
 struct VertexDescriptor {
     var attributes: [VertexAttribute]
+    var bufferLayouts: [VertexBufferLayout]
 
     func source(name: String) -> [DeclSyntax] {
         var attributeDecls: [DeclSyntax] = []
-        var offsets: [Int:Int] = [:]
+        var offsets: [Int: Int] = [:]
         attributes.enumerated().forEach { index, attribute in
             attributeDecls += attribute.source(descriptorName: name, index: index, offset: offsets[attribute.bufferIndex, default: 0])
             offsets[attribute.bufferIndex, default: 0] += attribute.size
         }
-        let offsetsDecl: [DeclSyntax] = offsets.sorted(by: { $0.key < $1.key }).map { bufferIndex, size in
-            "\(raw:name).layouts[\(raw: bufferIndex)].stride = \(raw: size)"
+
+        var bufferLayouts = Dictionary(uniqueKeysWithValues: bufferLayouts.map { ($0.index, $0) })
+        for (index, stride) in offsets {
+            if var bufferLayout = bufferLayouts[index] {
+                if bufferLayout.stride == nil {
+                    bufferLayout.stride = UInt(stride)
+                    bufferLayouts[index] = bufferLayout
+                }
+            }
+            else {
+                bufferLayouts[index] = VertexBufferLayout(index: index, stride: UInt(stride)) // TODO: fix uint vs int
+            }
         }
+
+        let bufferLayoutDecls = bufferLayouts.values.sorted(by: { $0.index < $1.index }).flatMap { $0.source(descriptorName: name)}
+
         return ["""
         static var vertexDescriptor: MTLVertexDescriptor {
             let \(raw:name) = MTLVertexDescriptor()
         """]
         + attributeDecls
-        + offsetsDecl
+        + bufferLayoutDecls
         + ["""
             return \(raw:name)
         }
@@ -111,6 +161,23 @@ struct VertexAttribute {
         """]
     }
 }
+
+extension VertexBufferLayout {
+    func source(descriptorName: String) -> [DeclSyntax] {
+        var result: [DeclSyntax] = [
+            "\(raw: descriptorName).layouts[\(raw: index)].stride = \(raw: stride!)"
+        ]
+        if let stepFunction {
+            result.append("\(raw: descriptorName).layouts[\(raw: index)].stepFunction = \(raw: stepFunction)")
+        }
+        if let stepRate {
+            result.append("\(raw: descriptorName).layouts[\(raw: index)].stepRate = \(raw: stepRate)")
+        }
+        return result
+    }
+}
+
+// MARK: -
 
 extension VertexAttribute {
     init(_ variableDecl: VariableDeclSyntax) throws {
@@ -170,57 +237,9 @@ extension VertexAttribute {
     }
 }
 
-extension MTLVertexFormat {
-
-    init?(swiftType string: String) {
-        switch string {
-        case "SIMD2<Float>":
-            self = .float2
-        case "SIMD3<Float>":
-            self = .float3
-        case "SIMD4<Float>":
-            self = .float4
-        default:
-            return nil
-        }
-    }
-
-    init?(caseName string: String) {
-        switch string {
-        case ".float2":
-            self = .float2
-        case ".float3":
-            self = .float3
-        case ".float4":
-            self = .float4
-        default:
-            return nil
-        }
-    }
-
-    var caseName: String {
-        switch self {
-        case .float2:
-            ".float2"
-        case .float3:
-            ".float3"
-        case .float4:
-            ".float4"
-        default:
-            fatalError()
-        }
-    }
-
-    var size: Int {
-        switch self {
-        case .float2:
-            return 2 * MemoryLayout<Float>.stride // Do not use size of SIMD3<Float>
-        case .float3:
-            return 3 * MemoryLayout<Float>.stride // Do not use size of SIMD3<Float>
-        case .float4:
-            return 4 * MemoryLayout<Float>.stride // Do not use size of SIMD3<Float>
-        default:
-            fatalError()
-        }
-    }
+struct VertexBufferLayout {
+    var index: Int
+    var stride: UInt? = nil
+    var stepFunction: MTLVertexStepFunction? = nil
+    var stepRate: UInt? = nil
 }
