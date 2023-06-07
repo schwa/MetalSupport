@@ -17,7 +17,7 @@ struct MyVertex {
     var position: SIMD3<Float>
     // Tell the macro what the attribute type is if it can't infer
     @VertexAttribute(.float4)
-    var ambient: (Float, Float, Float, Float))
+    var ambient: (Float, Float, Float, Float)
 
     // Specify the buffer index explicitely (otherwise 0 is assumed)
     @VertexAttribute(bufferIndex: 1)
