@@ -75,19 +75,21 @@ struct VertexDescriptor {
 
     func source(name: String) -> [DeclSyntax] {
         var attributeDecls: [DeclSyntax] = []
-        var offset = 0
+        var offsets: [Int:Int] = [:]
         attributes.enumerated().forEach { index, attribute in
-            attributeDecls += attribute.source(descriptorName: name, index: index, offset: offset)
-            offset += attribute.size
+            attributeDecls += attribute.source(descriptorName: name, index: index, offset: offsets[attribute.bufferIndex, default: 0])
+            offsets[attribute.bufferIndex, default: 0] += attribute.size
         }
-
+        let offsetsDecl: [DeclSyntax] = offsets.sorted(by: { $0.key < $1.key }).map { bufferIndex, size in
+            "\(raw:name).layouts[\(raw: bufferIndex)].stride = \(raw: size)"
+        }
         return ["""
         static let descriptor: MTLVertexDescriptor {
             let \(raw:name) = MTLVertexDescriptor()
         """]
-        + attributeDecls +
-        ["""
-        \(raw:name).layouts[0].stride = \(raw: offset)
+        + attributeDecls
+        + offsetsDecl
+        + ["""
             return \(raw:name)
         }
         """]
