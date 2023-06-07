@@ -151,8 +151,7 @@ extension VertexAttribute {
         }
 
         if let format {
-
-            if let expectedFormat = MTLVertexFormat(swiftType: type), expectedFormat != MTLVertexFormat(swiftType: type) {
+            if let expectedFormat = MTLVertexFormat(swiftType: type), expectedFormat != format {
                 throw MacroError.generic("Mismatched types.")
             }
         }

@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "sourceLanguages": [
+                "swift"
+            ],
+            "name": "Debug MetalSupportDemo",
+            "program": "${workspaceFolder:MetalSupport}/.build/debug/MetalSupportDemo",
+            "args": [],
+            "cwd": "${workspaceFolder:MetalSupport}",
+            "preLaunchTask": "swift: Build Debug MetalSupportDemo"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "sourceLanguages": [
+                "swift"
+            ],
+            "name": "Release MetalSupportDemo",
+            "program": "${workspaceFolder:MetalSupport}/.build/release/MetalSupportDemo",
+            "args": [],
+            "cwd": "${workspaceFolder:MetalSupport}",
+            "preLaunchTask": "swift: Build Release MetalSupportDemo"
+        }
+    ]
+}
