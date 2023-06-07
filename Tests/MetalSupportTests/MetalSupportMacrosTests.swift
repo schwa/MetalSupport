@@ -5,7 +5,8 @@ import MetalSupport
 import MetalSupportMacros
 
 let testMacros: [String: Macro.Type] = [
-    "VertexDescriptor": VertexDescriptorMacro.self
+    "VertexDescriptor": VertexDescriptorMacro.self,
+    "VertexAttribute": VertexDescriptorMacro.self,
 ]
 
 final class VertexDescriptorMacroTests: XCTestCase {
@@ -14,29 +15,17 @@ final class VertexDescriptorMacroTests: XCTestCase {
             """
             @VertexDescriptor
             struct MyVertex {
+                @VertexAttribute(.float3)
                 var position: SIMD3<Float>
-                var color: SIMD4<Float>
+                @VertexAttribute
+                var ambient: SIMD4<Float>
+                @VertexAttribute(.float4, bufferIndex: 1)
+                var specular: SIMD4<Float>
+                @VertexAttribute(bufferIndex: 1)
+                var specular: SIMD4<Float>
             }
             """,
             expandedSource: """
-
-            struct MyVertex {
-                var position: SIMD3<Float>
-                var color: SIMD4<Float>
-                static var _vertexDescriptor: MTLVertexDescriptor {
-                    let descriptor = MTLVertexDescriptor()
-                    // Attribute for ``position``: ``SIMD3<Float>``
-                    attributes[0].format = .float3
-                    attributes[0].offset = -1
-                    attributes[0].bufferIndex = 0
-                    // Attribute for ``color``: ``SIMD4<Float>``
-                    attributes[1].format = .float4
-                    attributes[1].offset = -1
-                    attributes[1].bufferIndex = 0
-                    descriptor.layouts[0].stride = -1
-                    return descriptor
-                }
-            }
             """,
             macros: testMacros
         )
