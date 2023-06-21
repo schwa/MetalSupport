@@ -1,4 +1,4 @@
-#if canImport(ARKit)
+#if os(iOS) && !targetEnvironment(simulator)
     import ARKit
     import Metal
 
