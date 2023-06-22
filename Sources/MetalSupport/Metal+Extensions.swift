@@ -167,7 +167,6 @@ public extension MTLDevice {
     }
 }
 
-
 extension MTLGPUFamily: CaseIterable, CustomStringConvertible {
     public var description: String {
         switch self {
@@ -236,7 +235,6 @@ extension MTLSize: Codable {
         try container.encode(depth)
     }
 }
-
 
 extension MTLWinding: CaseIterable, CustomStringConvertible {
     public static var allCases: [MTLWinding] = [.clockwise, .counterClockwise]
@@ -691,7 +689,6 @@ public extension MTLComputeCommandEncoder {
         setBytes(bytes, length: length, index: index.rawValue)
     }
 }
-
 
 public extension MTLRenderCommandEncoder {
     func setBuffer(_ buffer: MTLBuffer?, offset: Int, stage: MTLRenderStages, index: Int) {
