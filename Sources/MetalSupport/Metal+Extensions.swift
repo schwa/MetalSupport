@@ -3,6 +3,11 @@ import Metal
 import simd
 import ModelIO
 
+// swiftlint:disable function_body_length
+// swiftlint:disable cyclomatic_complexity
+// swiftlint:disable file_length
+// swiftlint:disable function_parameter_count
+
 #if os(macOS)
     public func allHeadlessDevices() -> [MTLDevice] {
         MTLCopyAllDevices().filter { $0.isHeadless == true }
