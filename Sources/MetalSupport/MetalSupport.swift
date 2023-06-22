@@ -5,3 +5,4 @@ public enum MetalSupportError: Error {
 internal func fatal(error: Error) -> Never {
     fatalError("\(error)")
 }
+
