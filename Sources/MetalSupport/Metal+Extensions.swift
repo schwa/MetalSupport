@@ -584,6 +584,7 @@ public extension MTLVertexFormat {
 }
 
 public extension MTLArgumentDescriptor {
+    @available(iOS 17, macOS 14, *)
     convenience init(dataType: MTLDataType, index: Int, arrayLength: Int? = nil, access: MTLBindingAccess? = nil, textureType: MTLTextureType? = nil, constantBlockAlignment: Int? = nil) {
         self.init()
         self.dataType = dataType
