@@ -405,6 +405,7 @@ extension MTLResourceUsage: Codable {
 
 public extension MTLVertexDescriptor {
     // TODO: Only works for SIMPLE vertexes (one layout)
+    @available(*, deprecated, message: "Too dangerous. Only works with single layouts.")
     convenience init(attributes: [MTLVertexAttribute]) {
         self.init()
         var offset = 0
