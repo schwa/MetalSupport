@@ -782,10 +782,3 @@ public extension MTLComputeCommandEncoder {
         }
     }
 }
-
-extension MTLResourceUsage: Hashable {
-}
-
-extension MTLRenderStages: Hashable {
-}
-
