@@ -366,3 +366,8 @@ extension MTLSize: ExpressibleByArrayLiteral {
     }
 }
 
+extension MTLResourceUsage: Hashable {
+}
+
+extension MTLRenderStages: Hashable {
+}
