@@ -8,16 +8,6 @@ import ModelIO
 // swiftlint:disable file_length
 // swiftlint:disable function_parameter_count
 
-#if os(macOS)
-    public func allHeadlessDevices() -> [MTLDevice] {
-        MTLCopyAllDevices().filter { $0.isHeadless == true }
-    }
-
-    public func allLowPowerDevices() -> [MTLDevice] {
-        MTLCopyAllDevices().filter { $0.isLowPower == true }
-    }
-#endif
-
 public extension MTLAttributeDescriptor {
     convenience init(format: MTLAttributeFormat, offset: Int = 0, bufferIndex: Int) {
         self.init()
@@ -172,50 +162,6 @@ public extension MTLDevice {
     }
 }
 
-extension MTLGPUFamily: CaseIterable, CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case .apple1: return "apple1"
-        case .apple2: return "apple2"
-        case .apple3: return "apple3"
-        case .apple4: return "apple4"
-        case .apple5: return "apple5"
-        case .apple6: return "apple6"
-        case .apple7: return "apple7"
-        case .mac1: return "mac1"
-        case .mac2: return "mac2"
-        case .common1: return "common1"
-        case .common2: return "common2"
-        case .common3: return "common3"
-        case .macCatalyst1: return "macCatalyst1"
-        case .macCatalyst2: return "macCatalyst2"
-        case .apple8:
-            return "apple8"
-        case .metal3:
-            return "metal3"
-        @unknown default:
-            fatalError("Unknown MTLGPUFamily")
-        }
-    }
-
-    public static var allCases: [MTLGPUFamily] {
-        [
-            .apple1,
-            .apple2,
-            .apple3,
-            .apple4,
-            .apple5,
-            .apple6,
-            .apple7,
-            .apple8,
-            .mac2,
-            .common1,
-            .common2,
-            .common3,
-            //.metal3, // TODO: fix me
-        ]
-    }
-}
 
 public extension MTLArgumentEncoder {
     func setBytesOf<Value>(_ value: Value, index: Int) {
@@ -241,52 +187,6 @@ extension MTLSize: Codable {
     }
 }
 
-extension MTLWinding: CaseIterable, CustomStringConvertible {
-    public static var allCases: [MTLWinding] = [.clockwise, .counterClockwise]
-
-    public var description: String {
-        switch self {
-        case .clockwise:
-            return "clockwise"
-        case .counterClockwise:
-            return "counterClockwise"
-        @unknown default:
-            fatalError("Unexpected case")
-        }
-    }
-}
-
-extension MTLCullMode: CaseIterable, CustomStringConvertible {
-    public static var allCases: [MTLCullMode] = [.back, .front, .none]
-
-    public var description: String {
-        switch self {
-        case .back:
-            return "back"
-        case .front:
-            return "front"
-        case .none:
-            return "none"
-        @unknown default:
-            fatalError("Unexpected case")
-        }
-    }
-}
-
-extension MTLTriangleFillMode: CaseIterable {
-    public static var allCases: [MTLTriangleFillMode] = [.fill, .lines]
-}
-
-extension MTLTriangleFillMode: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case .fill: return "fill"
-        case .lines: return "lines"
-        default:
-            fatalError("Unexpected case")
-        }
-    }
-}
 
 public extension MTLRenderCommandEncoder {
     func setVertexBytes(of value: some Any, index: Int) {
@@ -330,33 +230,6 @@ public extension MTLBuffer {
     }
 }
 
-extension MTLCompareFunction: CaseIterable, CustomStringConvertible {
-    public static var allCases: [MTLCompareFunction] = [
-        .never,
-        .less,
-        .equal,
-        .lessEqual,
-        .greater,
-        .notEqual,
-        .greaterEqual,
-        .always,
-    ]
-
-    public var description: String {
-        switch self {
-        case .never: return "never"
-        case .less: return "less"
-        case .equal: return "equal"
-        case .lessEqual: return "lessEqual"
-        case .greater: return "greater"
-        case .notEqual: return "notEqual"
-        case .greaterEqual: return "greaterEqual"
-        case .always: return "always"
-        @unknown default:
-            fatalError("Unexpected case")
-        }
-    }
-}
 
 // NOTE: Deprecate?
 public extension MTLDevice {
@@ -621,13 +494,6 @@ public extension MTLVertexDescriptor {
     }
 }
 
-extension MTLSize: ExpressibleByArrayLiteral {
-    public init(arrayLiteral elements: Int...) {
-        assert(elements.count == 3)
-        self = MTLSize(elements[0], elements[1], elements[2])
-    }
-}
-
 public extension MTLDevice {
     var supportsNonuniformThreadGroupSizes: Bool {
         let families: [MTLGPUFamily] = [.apple4, .apple5, .apple6, .apple7]
@@ -780,5 +646,48 @@ public extension MTLComputeCommandEncoder {
         array.withUnsafeBytes { buffer in
             setBytes(buffer, index: index)
         }
+    }
+}
+
+public extension MTLCommandQueue {
+
+    func withCommandBuffer<R>(waitAfterCommit wait: Bool, block: (MTLCommandBuffer) throws -> R) rethrows -> R {
+        guard let commandBuffer = makeCommandBuffer() else {
+            fatalError("Failed to make command buffer.")
+        }
+        defer {
+            commandBuffer.commit()
+            if wait {
+                commandBuffer.waitUntilCompleted()
+            }
+        }
+        return try block(commandBuffer)
+    }
+
+
+    func withCommandBuffer<R>(drawable: @autoclosure () -> (any MTLDrawable)?, block: (MTLCommandBuffer) throws -> R) rethrows -> R {
+        guard let commandBuffer = makeCommandBuffer() else {
+            fatalError("Failed to make command buffer.")
+        }
+        defer {
+            if let drawable = drawable() {
+                commandBuffer.present(drawable)
+            }
+            commandBuffer.commit()
+        }
+        return try block(commandBuffer)
+    }
+}
+
+public extension MTLCommandBuffer {
+    func withRenderCommandEncoder<R>(descriptor: MTLRenderPassDescriptor, block: (MTLRenderCommandEncoder) throws -> R) rethrows -> R{
+        guard let renderCommandEncoder = makeRenderCommandEncoder(descriptor: descriptor) else {
+            // TODO: Better to throw?
+            fatalError("Failed to make render command encoder.")
+        }
+        defer {
+            renderCommandEncoder.endEncoding()
+        }
+        return try block(renderCommandEncoder)
     }
 }
