@@ -24,7 +24,10 @@ let package = Package(
     targets: [
         .target(
             name: "MetalSupport",
-            dependencies: []
+            dependencies: [],
+            swiftSettings: [
+//               .define("LEGACY")
+            ]
         ),
         .target(
             name: "MetalSupportUnsafeConformances",
