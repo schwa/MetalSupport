@@ -371,3 +371,20 @@ extension MTLResourceUsage: Hashable {
 
 extension MTLRenderStages: Hashable {
 }
+
+extension MTLSize: Codable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let width = try container.decode(Int.self)
+        let height = try container.decode(Int.self)
+        let depth = try container.decode(Int.self)
+        self = MTLSize(width: width, height: height, depth: depth)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(width)
+        try container.encode(height)
+        try container.encode(depth)
+    }
+}
