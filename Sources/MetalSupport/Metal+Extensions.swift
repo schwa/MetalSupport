@@ -8,7 +8,6 @@ import simd
 // swiftlint:disable file_length
 // swiftlint:disable function_parameter_count
 
-#if !LEGACY
 public extension MTLArgumentDescriptor {
     @available(iOS 17, macOS 14, *)
     convenience init(dataType: MTLDataType, index: Int, arrayLength: Int? = nil, access: MTLBindingAccess? = nil, textureType: MTLTextureType? = nil, constantBlockAlignment: Int? = nil) {
@@ -29,7 +28,6 @@ public extension MTLArgumentDescriptor {
         }
     }
 }
-#endif
 
 public extension MTLAttributeDescriptor {
     convenience init(format: MTLAttributeFormat, offset: Int = 0, bufferIndex: Int) {

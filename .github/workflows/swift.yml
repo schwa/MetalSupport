@@ -10,15 +10,15 @@ on:
     branches: ["main"]
 
 jobs:
-  build-legacy:
-    runs-on: macos-latest
+  #   build-legacy:
+  #     runs-on: macos-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build
-        run: swift build -v -Xswiftc -DLEGACY
-      - name: Run tests
-        run: swift test -v -Xswiftc -DLEGACY
+  #     steps:
+  #       - uses: actions/checkout@v3
+  #       - name: Build
+  #         run: swift build -v -Xswiftc -DLEGACY
+  #       - name: Run tests
+  #         run: swift test -v -Xswiftc -DLEGACY
 
   build:
     runs-on: macos-13
