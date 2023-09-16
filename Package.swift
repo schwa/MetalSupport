@@ -26,7 +26,7 @@ let package = Package(
             name: "MetalSupport",
             dependencies: [],
             swiftSettings: [
-//               .define("LEGACY")
+               .define("LEGACY")
             ]
         ),
         .target(
