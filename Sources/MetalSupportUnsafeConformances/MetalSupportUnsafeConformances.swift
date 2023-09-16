@@ -371,3 +371,44 @@ extension MTLResourceUsage: Hashable {
 
 extension MTLRenderStages: Hashable {
 }
+
+extension MTLSize: Codable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let width = try container.decode(Int.self)
+        let height = try container.decode(Int.self)
+        let depth = try container.decode(Int.self)
+        self = MTLSize(width: width, height: height, depth: depth)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(width)
+        try container.encode(height)
+        try container.encode(depth)
+    }
+}
+
+extension MTLResourceUsage: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let strings = try container.decode([String].self)
+        let mapping = [
+            "read": MTLResourceUsage.read,
+            "write": MTLResourceUsage.write,
+        ]
+        assert(!strings.contains("sample"))
+        let usages: [MTLResourceUsage] = strings.map { mapping[$0]! }
+        self = MTLResourceUsage(usages)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        let mapping = [
+            (MTLResourceUsage.read, "read"),
+            (MTLResourceUsage.write, "write"),
+        ]
+        let strings = mapping.compactMap { contains($0.0) ? $0.1 : nil }
+        try container.encode(strings)
+    }
+}

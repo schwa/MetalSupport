@@ -1,12 +1,35 @@
 import CoreGraphics
 import Metal
-import simd
 import ModelIO
+import simd
 
 // swiftlint:disable function_body_length
 // swiftlint:disable cyclomatic_complexity
 // swiftlint:disable file_length
 // swiftlint:disable function_parameter_count
+
+#if !LEGACY
+public extension MTLArgumentDescriptor {
+    @available(iOS 17, macOS 14, *)
+    convenience init(dataType: MTLDataType, index: Int, arrayLength: Int? = nil, access: MTLBindingAccess? = nil, textureType: MTLTextureType? = nil, constantBlockAlignment: Int? = nil) {
+        self.init()
+        self.dataType = dataType
+        self.index = index
+        if let arrayLength {
+            self.arrayLength = arrayLength
+        }
+        if let access {
+            self.access = access
+        }
+        if let textureType {
+            self.textureType = textureType
+        }
+        if let constantBlockAlignment {
+            self.arrayLength = constantBlockAlignment
+        }
+    }
+}
+#endif
 
 public extension MTLAttributeDescriptor {
     convenience init(format: MTLAttributeFormat, offset: Int = 0, bufferIndex: Int) {
@@ -17,13 +40,170 @@ public extension MTLAttributeDescriptor {
     }
 }
 
-public extension MTLTexture {
-    var size: MTLSize {
-        MTLSize(width, height, depth)
+public extension MTLBuffer {
+    func data() -> Data {
+        Data(bytes: contents(), count: length)
     }
 
-    var region: MTLRegion {
-        MTLRegion(origin: .zero, size: size)
+    /// Update a MTLBuffer's contents using an inout type block
+    func with<T, R>(type: T.Type, _ block: (inout T) -> R) -> R {
+        let value = contents().bindMemory(to: T.self, capacity: 1)
+        let result = block(&value.pointee)
+        return result
+    }
+
+    func withEx<T, R>(type: T.Type, count: Int, _ block: (UnsafeMutableBufferPointer<T>) -> R) -> R {
+        let pointer = contents().bindMemory(to: T.self, capacity: count)
+        let buffer = UnsafeMutableBufferPointer(start: pointer, count: count)
+        let result = block(buffer)
+        return result
+    }
+}
+
+public extension MTLCommandBuffer {
+    func withRenderCommandEncoder<R>(descriptor: MTLRenderPassDescriptor, block: (MTLRenderCommandEncoder) throws -> R) rethrows -> R{
+        guard let renderCommandEncoder = makeRenderCommandEncoder(descriptor: descriptor) else {
+            // TODO: Better to throw?
+            fatalError("Failed to make render command encoder.")
+        }
+        defer {
+            renderCommandEncoder.endEncoding()
+        }
+        return try block(renderCommandEncoder)
+    }
+}
+
+public extension MTLCommandQueue {
+    func withCommandBuffer<R>(waitAfterCommit wait: Bool, block: (MTLCommandBuffer) throws -> R) rethrows -> R {
+        guard let commandBuffer = makeCommandBuffer() else {
+            fatalError("Failed to make command buffer.")
+        }
+        defer {
+            commandBuffer.commit()
+            if wait {
+                commandBuffer.waitUntilCompleted()
+            }
+        }
+        return try block(commandBuffer)
+    }
+
+    func withCommandBuffer<R>(drawable: @autoclosure () -> (any MTLDrawable)?, block: (MTLCommandBuffer) throws -> R) rethrows -> R {
+        guard let commandBuffer = makeCommandBuffer() else {
+            fatalError("Failed to make command buffer.")
+        }
+        defer {
+            if let drawable = drawable() {
+                commandBuffer.present(drawable)
+            }
+            commandBuffer.commit()
+        }
+        return try block(commandBuffer)
+    }
+}
+
+public extension MTLDepthStencilDescriptor {
+    convenience init(depthCompareFunction: MTLCompareFunction, isDepthWriteEnabled: Bool) {
+        self.init()
+        self.depthCompareFunction = depthCompareFunction
+        self.isDepthWriteEnabled = isDepthWriteEnabled
+    }
+}
+
+public extension MTLDevice {
+    @available(*, deprecated, message: "TODO")
+    func make2DTexture(pixelFormat: MTLPixelFormat = .rgba8Unorm, size: SIMD2<Int>, mipmapped: Bool = false, usage: MTLTextureUsage? = nil) -> MTLTexture {
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: pixelFormat, width: size.x, height: size.y, mipmapped: mipmapped)
+        if let usage {
+            textureDescriptor.usage = usage
+        }
+        return makeTexture(descriptor: textureDescriptor)!
+    }
+
+    func makeBuffer(bytesOf content: some Any, options: MTLResourceOptions) -> MTLBuffer? {
+        withUnsafeBytes(of: content) { buffer in
+            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: .storageModeShared)
+        }
+    }
+
+    func makeBuffer(bytesOf content: [some Any], options: MTLResourceOptions) -> MTLBuffer? {
+        content.withUnsafeBytes { buffer in
+            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: .storageModeShared)
+        }
+    }
+
+    @available(*, deprecated, message: "Do not use. Should be an extension on blit encoder")
+    func copy(from sourceBuffer: MTLBuffer, sourceOffset: Int, to destinationBuffer: MTLBuffer, destinationOffset: Int, size: Int) {
+        let commandQueue = makeCommandQueue()!
+        let commandBuffer = commandQueue.makeCommandBuffer()!
+        let commandEncoder = commandBuffer.makeBlitCommandEncoder()!
+        commandEncoder.copy(from: sourceBuffer, sourceOffset: sourceOffset, to: destinationBuffer, destinationOffset: destinationOffset, size: size)
+        commandEncoder.endEncoding()
+        commandBuffer.commit()
+    }
+
+    @available(*, deprecated, message: "Do not use. Should be an extension on blit encoder")
+    func makePrivateCopy(of sourceBuffer: MTLBuffer) -> MTLBuffer {
+        let privateBuffer = makeBuffer(length: sourceBuffer.length, options: .storageModePrivate)!
+        privateBuffer.label = "\(sourceBuffer.label ?? "Unlabeled buffer") private copy"
+        copy(from: sourceBuffer, sourceOffset: 0, to: privateBuffer, destinationOffset: 0, size: sourceBuffer.length)
+        return privateBuffer
+    }
+
+    var supportsNonuniformThreadGroupSizes: Bool {
+        let families: [MTLGPUFamily] = [.apple4, .apple5, .apple6, .apple7]
+        return families.contains { supportsFamily($0) }
+    }
+
+    @available(*, deprecated, message: "Do not use.")
+    func makeTexture2D<T>(width: Int, height: Int, pixelFormat: MTLPixelFormat, storageMode: MTLStorageMode, usage: MTLTextureUsage, pixels: [T], label: String? = nil) -> MTLTexture {
+        return pixels.withUnsafeBytes { bytes -> MTLTexture in
+            let descriptor = MTLTextureDescriptor()
+            descriptor.width = width
+            descriptor.height = height
+            descriptor.pixelFormat = pixelFormat
+            descriptor.storageMode = storageMode
+            descriptor.usage = usage
+
+            var bufferOptions: MTLResourceOptions = []
+            let buffer: MTLBuffer
+            if storageMode == .shared {
+                bufferOptions.insert(.storageModeShared)
+                buffer = makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: bufferOptions)!
+                buffer.label = label
+            }
+            else {
+                let sharedBuffer = makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: .storageModeShared)!
+                buffer = makePrivateCopy(of: sharedBuffer)
+                buffer.label = label
+            }
+
+            let texture = buffer.makeTexture(descriptor: descriptor, offset: 0, bytesPerRow: descriptor.width * MemoryLayout<T>.stride)!
+            texture.label = label
+            return texture
+        }
+    }
+}
+
+public extension MTLIndexType {
+    var indexSize: Int {
+        switch self {
+        case .uint16:
+            return MemoryLayout<UInt16>.size
+        case .uint32:
+            return MemoryLayout<UInt32>.size
+        default:
+            fatal(error: MetalSupportError.illegalValue)
+        }
+    }
+}
+
+public extension MTLOrigin {
+    static var zero: MTLOrigin {
+        MTLOrigin(x: 0, y: 0, z: 0)
+    }
+
+    init(_ origin: CGPoint) {
+        self.init(x: Int(origin.x), y: Int(origin.y), z: 0)
     }
 }
 
@@ -78,46 +258,6 @@ public extension MTLPixelFormat {
     }
 }
 
-public extension MTLOrigin {
-    static var zero: MTLOrigin {
-        MTLOrigin(x: 0, y: 0, z: 0)
-    }
-}
-
-public extension MTLSize {
-    init(_ width: Int, _ height: Int, _ depth: Int) {
-        self = MTLSize(width: width, height: height, depth: depth)
-    }
-}
-
-public extension MTLDevice {
-    @available(*, deprecated, message: "TODO")
-    func make2DTexture(pixelFormat: MTLPixelFormat = .rgba8Unorm, size: SIMD2<Int>, mipmapped: Bool = false, usage: MTLTextureUsage? = nil) -> MTLTexture {
-        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: pixelFormat, width: size.x, height: size.y, mipmapped: mipmapped)
-        if let usage {
-            textureDescriptor.usage = usage
-        }
-        return makeTexture(descriptor: textureDescriptor)!
-    }
-}
-
-public extension MTLTexture {
-    func clear(color: SIMD4<UInt8> = [0, 0, 0, 0]) {
-        assert(depth == 1)
-        let buffer = Array(repeatElement(color, count: width * height * depth))
-        assert(MemoryLayout<SIMD4<UInt8>>.stride == pixelFormat.size)
-        buffer.withUnsafeBytes { pointer in
-            replace(region: region, mipmapLevel: 0, withBytes: pointer.baseAddress!, bytesPerRow: width * MemoryLayout<SIMD4<UInt8>>.stride)
-        }
-    }
-}
-
-public extension MTLBuffer {
-    func data() -> Data {
-        Data(bytes: contents(), count: length)
-    }
-}
-
 public extension MTLPrimitiveType {
     var vertexCount: Int? {
         switch self {
@@ -129,150 +269,39 @@ public extension MTLPrimitiveType {
     }
 }
 
-public extension CGSize {
-    init(_ size: SIMD2<Double>) {
-        self = CGSize(width: CGFloat(size.x), height: CGFloat(size.y))
+public extension MTLRegion {
+    init(_ rect: CGRect) {
+        self = MTLRegion(origin: MTLOrigin(rect.origin), size: MTLSize(rect.size))
     }
 }
 
-public extension MTLIndexType {
-    var indexSize: Int {
-        switch self {
-        case .uint16:
-            return MemoryLayout<UInt16>.size
-        case .uint32:
-            return MemoryLayout<UInt32>.size
-        default:
-            fatal(error: MetalSupportError.illegalValue)
-        }
-    }
-}
-
-public extension MTLDevice {
-    func makeBuffer(bytesOf content: some Any, options: MTLResourceOptions) -> MTLBuffer? {
-        withUnsafeBytes(of: content) { buffer in
-            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: .storageModeShared)
-        }
-    }
-
-    func makeBuffer(bytesOf content: [some Any], options: MTLResourceOptions) -> MTLBuffer? {
-        content.withUnsafeBytes { buffer in
-            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: .storageModeShared)
-        }
-    }
-}
-
-
-public extension MTLArgumentEncoder {
-    func setBytesOf<Value>(_ value: Value, index: Int) {
-        let d = constantData(at: index).bindMemory(to: Value.self, capacity: 1)
-        d.pointee = value
-    }
-}
-
-extension MTLSize: Codable {
-    public init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-        let width = try container.decode(Int.self)
-        let height = try container.decode(Int.self)
-        let depth = try container.decode(Int.self)
+public extension MTLSize {
+    init(_ width: Int, _ height: Int, _ depth: Int) {
         self = MTLSize(width: width, height: height, depth: depth)
     }
 
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.unkeyedContainer()
-        try container.encode(width)
-        try container.encode(height)
-        try container.encode(depth)
+    init(_ size: CGSize) {
+        self.init(width: Int(size.width), height: Int(size.height), depth: 1)
     }
 }
 
+public extension MTLTexture {
+    var size: MTLSize {
+        MTLSize(width, height, depth)
+    }
 
-public extension MTLRenderCommandEncoder {
-    func setVertexBytes(of value: some Any, index: Int) {
-        withUnsafeBytes(of: value) { buffer in
-            setVertexBytes(buffer.baseAddress!, length: buffer.count, index: index)
+    var region: MTLRegion {
+        MTLRegion(origin: .zero, size: size)
+    }
+
+    func clear(color: SIMD4<UInt8> = [0, 0, 0, 0]) {
+        // TODO: This is crazy expensive. :-)
+        assert(depth == 1)
+        let buffer = Array(repeatElement(color, count: width * height * depth))
+        assert(MemoryLayout<SIMD4<UInt8>>.stride == pixelFormat.size)
+        buffer.withUnsafeBytes { pointer in
+            replace(region: region, mipmapLevel: 0, withBytes: pointer.baseAddress!, bytesPerRow: width * MemoryLayout<SIMD4<UInt8>>.stride)
         }
-    }
-
-    func setVertexBytes(of value: [some Any], index: Int) {
-        value.withUnsafeBytes { buffer in
-            setVertexBytes(buffer.baseAddress!, length: buffer.count, index: index)
-        }
-    }
-
-    func setFragmentBytes(of value: some Any, index: Int) {
-        withUnsafeBytes(of: value) { buffer in
-            setFragmentBytes(buffer.baseAddress!, length: buffer.count, index: index)
-        }
-    }
-
-    func setFragmentBytes(of value: [some Any], index: Int) {
-        value.withUnsafeBytes { buffer in
-            setFragmentBytes(buffer.baseAddress!, length: buffer.count, index: index)
-        }
-    }
-}
-
-public extension MTLBuffer {
-    /// Update a MTLBuffer's contents using an inout type block
-    func with<T, R>(type: T.Type, _ block: (inout T) -> R) -> R {
-        let value = contents().bindMemory(to: T.self, capacity: 1)
-        let result = block(&value.pointee)
-        return result
-    }
-
-    func withEx<T, R>(type: T.Type, count: Int, _ block: (UnsafeMutableBufferPointer<T>) -> R) -> R {
-        let pointer = contents().bindMemory(to: T.self, capacity: count)
-        let buffer = UnsafeMutableBufferPointer(start: pointer, count: count)
-        let result = block(buffer)
-        return result
-    }
-}
-
-
-// NOTE: Deprecate?
-public extension MTLDevice {
-    // @available(*, deprecated, message: "Do not use. Should be an extension on blit encoder")
-    func copy(from sourceBuffer: MTLBuffer, sourceOffset: Int, to destinationBuffer: MTLBuffer, destinationOffset: Int, size: Int) {
-        let commandQueue = makeCommandQueue()!
-        let commandBuffer = commandQueue.makeCommandBuffer()!
-        let commandEncoder = commandBuffer.makeBlitCommandEncoder()!
-        commandEncoder.copy(from: sourceBuffer, sourceOffset: sourceOffset, to: destinationBuffer, destinationOffset: destinationOffset, size: size)
-        commandEncoder.endEncoding()
-        commandBuffer.commit()
-    }
-
-    // @available(*, deprecated, message: "Do not use. Should be an extension on blit encoder")
-    func makePrivateCopy(of sourceBuffer: MTLBuffer) -> MTLBuffer {
-        let privateBuffer = makeBuffer(length: sourceBuffer.length, options: .storageModePrivate)!
-        privateBuffer.label = "\(sourceBuffer.label ?? "Unlabeled buffer") private copy"
-        copy(from: sourceBuffer, sourceOffset: 0, to: privateBuffer, destinationOffset: 0, size: sourceBuffer.length)
-        return privateBuffer
-    }
-}
-
-extension MTLResourceUsage: Codable {
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let strings = try container.decode([String].self)
-        let mapping = [
-            "read": MTLResourceUsage.read,
-            "write": MTLResourceUsage.write,
-        ]
-        assert(!strings.contains("sample"))
-        let usages: [MTLResourceUsage] = strings.map { mapping[$0]! }
-        self = MTLResourceUsage(usages)
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        let mapping = [
-            (MTLResourceUsage.read, "read"),
-            (MTLResourceUsage.write, "write"),
-        ]
-        let strings = mapping.compactMap { contains($0.0) ? $0.1 : nil }
-        try container.encode(strings)
     }
 }
 
@@ -290,6 +319,20 @@ public extension MTLVertexDescriptor {
             offset += attributeDescriptor.format.size
         }
         layouts[0].stride = offset
+    }
+
+    convenience init(vertexDescriptor: MDLVertexDescriptor) {
+        self.init()
+        for (index, mdlAttribute) in vertexDescriptor.attributes.enumerated() {
+            let mdlAttribute = mdlAttribute as! MDLVertexAttribute
+            attributes[index].offset = mdlAttribute.offset
+            attributes[index].bufferIndex = mdlAttribute.bufferIndex
+            attributes[index].format = MTLVertexFormat(mdlAttribute.format)
+        }
+        for (index, mdlLayout) in vertexDescriptor.layouts.enumerated() {
+            let mdlLayout = mdlLayout as! MDLVertexBufferLayout
+            layouts[index].stride = mdlLayout.stride
+        }
     }
 }
 
@@ -384,9 +427,7 @@ public extension MTLVertexFormat {
             fatalError("Unknown MTLVertexFormat \(self)")
         }
     }
-}
 
-public extension MTLVertexFormat {
     init?(dataType: MTLDataType) {
         switch dataType {
         case .float2:
@@ -454,240 +495,5 @@ public extension MTLVertexFormat {
         default:
             fatalError("Unsupported or unknown MTLDataType.")
         }
-    }
-}
-
-public extension MTLArgumentDescriptor {
-    @available(iOS 17, macOS 14, *)
-    convenience init(dataType: MTLDataType, index: Int, arrayLength: Int? = nil, access: MTLBindingAccess? = nil, textureType: MTLTextureType? = nil, constantBlockAlignment: Int? = nil) {
-        self.init()
-        self.dataType = dataType
-        self.index = index
-        if let arrayLength {
-            self.arrayLength = arrayLength
-        }
-        if let access {
-            self.access = access
-        }
-        if let textureType {
-            self.textureType = textureType
-        }
-        if let constantBlockAlignment {
-            self.arrayLength = constantBlockAlignment
-        }
-    }
-}
-
-public extension MTLVertexDescriptor {
-    convenience init(vertexDescriptor: MDLVertexDescriptor) {
-        self.init()
-        for (index, mdlAttribute) in vertexDescriptor.attributes.enumerated() {
-            let mdlAttribute = mdlAttribute as! MDLVertexAttribute
-            attributes[index].offset = mdlAttribute.offset
-            attributes[index].bufferIndex = mdlAttribute.bufferIndex
-            attributes[index].format = MTLVertexFormat(mdlAttribute.format)
-        }
-        for (index, mdlLayout) in vertexDescriptor.layouts.enumerated() {
-            let mdlLayout = mdlLayout as! MDLVertexBufferLayout
-            layouts[index].stride = mdlLayout.stride
-        }
-    }
-}
-
-public extension MTLDevice {
-    var supportsNonuniformThreadGroupSizes: Bool {
-        let families: [MTLGPUFamily] = [.apple4, .apple5, .apple6, .apple7]
-        return families.contains { supportsFamily($0) }
-    }
-}
-
-public extension MTLDevice {
-    func makeTexture2D<T>(width: Int, height: Int, pixelFormat: MTLPixelFormat, storageMode: MTLStorageMode, usage: MTLTextureUsage, pixels: [T], label: String? = nil) -> MTLTexture {
-        return pixels.withUnsafeBytes { bytes -> MTLTexture in
-            let descriptor = MTLTextureDescriptor()
-            descriptor.width = width
-            descriptor.height = height
-            descriptor.pixelFormat = pixelFormat
-            descriptor.storageMode = storageMode
-            descriptor.usage = usage
-
-            var bufferOptions: MTLResourceOptions = []
-            let buffer: MTLBuffer
-            if storageMode == .shared {
-                bufferOptions.insert(.storageModeShared)
-                buffer = makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: bufferOptions)!
-                buffer.label = label
-            }
-            else {
-                let sharedBuffer = makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: .storageModeShared)!
-                buffer = makePrivateCopy(of: sharedBuffer)
-                buffer.label = label
-            }
-
-            let texture = buffer.makeTexture(descriptor: descriptor, offset: 0, bytesPerRow: descriptor.width * MemoryLayout<T>.stride)!
-            texture.label = label
-            return texture
-        }
-    }
-}
-
-public extension MTLRenderCommandEncoder {
-    func setVertexBuffer<T>(_ buffer: MTLBuffer?, offset: Int, index: T) where T: RawRepresentable, T.RawValue == Int {
-        setVertexBuffer(buffer, offset: offset, index: index.rawValue)
-    }
-
-    func setFragmentBuffer<T>(_ buffer: MTLBuffer?, offset: Int, index: T) where T: RawRepresentable, T.RawValue == Int {
-        setFragmentBuffer(buffer, offset: offset, index: index.rawValue)
-    }
-
-    func setVertexTexture<T>(_ texture: MTLTexture?, index: T) where T: RawRepresentable, T.RawValue == Int {
-        setVertexTexture(texture, index: index.rawValue)
-    }
-
-    func setFragmentTexture<T>(_ texture: MTLTexture?, index: T) where T: RawRepresentable, T.RawValue == Int {
-        setFragmentTexture(texture, index: index.rawValue)
-    }
-}
-
-public extension MTLComputeCommandEncoder {
-    func setBuffer<T>(_ buffer: MTLBuffer?, offset: Int, index: T) where T: RawRepresentable, T.RawValue == Int {
-        setBuffer(buffer, offset: offset, index: index.rawValue)
-    }
-
-    func setTexture<T>(_ texture: MTLTexture?, index: T) where T: RawRepresentable, T.RawValue == Int {
-        setTexture(texture, index: index.rawValue)
-    }
-
-    func setBytes<T>(_ bytes: UnsafeRawPointer, length: Int, index: T) where T: RawRepresentable, T.RawValue == Int {
-        setBytes(bytes, length: length, index: index.rawValue)
-    }
-}
-
-public extension MTLRenderCommandEncoder {
-    func setBuffer(_ buffer: MTLBuffer?, offset: Int, stage: MTLRenderStages, index: Int) {
-        switch stage {
-        case .vertex:
-            setVertexBuffer(buffer, offset: offset, index: index)
-        case .fragment:
-            setFragmentBuffer(buffer, offset: offset, index: index)
-        default:
-            fatalError("Unexpected case")
-        }
-    }
-
-    func setBytes(_ bytes: UnsafeRawPointer, length: Int, stage: MTLRenderStages, index: Int) {
-        switch stage {
-        case .vertex:
-            setVertexBytes(bytes, length: length, index: index)
-        case .fragment:
-            setFragmentBytes(bytes, length: length, index: index)
-        default:
-            fatalError("Unexpected case")
-        }
-    }
-
-    func setBytes(_ buffer: UnsafeRawBufferPointer, stage: MTLRenderStages, index: Int) {
-        setBytes(buffer.baseAddress!, length: buffer.count, stage: stage, index: index)
-    }
-
-    func setTexture(_ value: MTLTexture?, stage: MTLRenderStages, index: Int) {
-        switch stage {
-        case .vertex:
-            setVertexTexture(value, index: index)
-        case .fragment:
-            setFragmentTexture(value, index: index)
-        default:
-            fatalError("Unexpected case")
-        }
-    }
-
-    func setSamplerState(_ value: MTLSamplerState?, stage: MTLRenderStages, index: Int) {
-        switch stage {
-        case .vertex:
-            setVertexSamplerState(value, index: index)
-        case .fragment:
-            setFragmentSamplerState(value, index: index)
-        default:
-            fatalError("Unexpected case")
-        }
-    }
-}
-
-public extension MTLRenderCommandEncoder {
-    func setBytes(of value: some Any, stage: MTLRenderStages, index: Int) {
-        withUnsafeBytes(of: value) { (buffer: UnsafeRawBufferPointer) in
-            setBytes(buffer, stage: stage, index: index)
-        }
-    }
-
-    func setBytes(of array: [some Any], stage: MTLRenderStages, index: Int) {
-        array.withUnsafeBytes { buffer in
-            setBytes(buffer, stage: stage, index: index)
-        }
-    }
-}
-
-// MARK: -
-
-public extension MTLComputeCommandEncoder {
-    func setBytes(_ bytes: UnsafeRawBufferPointer, index: Int) {
-        setBytes(bytes.baseAddress!, length: bytes.count, index: index)
-    }
-}
-
-public extension MTLComputeCommandEncoder {
-    func setBytes(of value: some Any, index: Int) {
-        withUnsafeBytes(of: value) { (buffer: UnsafeRawBufferPointer) in
-            setBytes(buffer, index: index)
-        }
-    }
-
-    func setBytes(of array: [some Any], index: Int) {
-        array.withUnsafeBytes { buffer in
-            setBytes(buffer, index: index)
-        }
-    }
-}
-
-public extension MTLCommandQueue {
-
-    func withCommandBuffer<R>(waitAfterCommit wait: Bool, block: (MTLCommandBuffer) throws -> R) rethrows -> R {
-        guard let commandBuffer = makeCommandBuffer() else {
-            fatalError("Failed to make command buffer.")
-        }
-        defer {
-            commandBuffer.commit()
-            if wait {
-                commandBuffer.waitUntilCompleted()
-            }
-        }
-        return try block(commandBuffer)
-    }
-
-
-    func withCommandBuffer<R>(drawable: @autoclosure () -> (any MTLDrawable)?, block: (MTLCommandBuffer) throws -> R) rethrows -> R {
-        guard let commandBuffer = makeCommandBuffer() else {
-            fatalError("Failed to make command buffer.")
-        }
-        defer {
-            if let drawable = drawable() {
-                commandBuffer.present(drawable)
-            }
-            commandBuffer.commit()
-        }
-        return try block(commandBuffer)
-    }
-}
-
-public extension MTLCommandBuffer {
-    func withRenderCommandEncoder<R>(descriptor: MTLRenderPassDescriptor, block: (MTLRenderCommandEncoder) throws -> R) rethrows -> R{
-        guard let renderCommandEncoder = makeRenderCommandEncoder(descriptor: descriptor) else {
-            // TODO: Better to throw?
-            fatalError("Failed to make render command encoder.")
-        }
-        defer {
-            renderCommandEncoder.endEncoding()
-        }
-        return try block(renderCommandEncoder)
     }
 }
