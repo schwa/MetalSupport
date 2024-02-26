@@ -2,11 +2,16 @@ import Metal
 import SwiftUI
 
 internal struct MTLDeviceKey: EnvironmentKey {
-    static var defaultValue: MTLDevice?
+    static var defaultValue: MTLDevice = {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            fatalError("No default metal device found.")
+        }
+        return device
+    }()
 }
 
 public extension EnvironmentValues {
-    var metalDevice: MTLDevice? {
+    var metalDevice: MTLDevice {
         get {
             self[MTLDeviceKey.self]
         }
@@ -27,7 +32,7 @@ public extension View {
     func metalDevice(_ value: MTLDevice) -> some View {
         modifier(MTLDeviceModifier(value: value))
     }
-    
+
     func metalDevice() -> some View {
         guard let device = MTLCreateSystemDefaultDevice() else {
             fatalError("Well that's just not much fun is it?")

@@ -59,7 +59,7 @@ public extension MTLBuffer {
 }
 
 public extension MTLCommandBuffer {
-    func withRenderCommandEncoder<R>(descriptor: MTLRenderPassDescriptor, block: (MTLRenderCommandEncoder) throws -> R) rethrows -> R{
+    func withRenderCommandEncoder<R>(descriptor: MTLRenderPassDescriptor, block: (MTLRenderCommandEncoder) throws -> R) rethrows -> R {
         guard let renderCommandEncoder = makeRenderCommandEncoder(descriptor: descriptor) else {
             // TODO: Better to throw?
             fatalError("Failed to make render command encoder.")
@@ -108,77 +108,22 @@ public extension MTLDepthStencilDescriptor {
 }
 
 public extension MTLDevice {
-    @available(*, deprecated, message: "TODO")
-    func make2DTexture(pixelFormat: MTLPixelFormat = .rgba8Unorm, size: SIMD2<Int>, mipmapped: Bool = false, usage: MTLTextureUsage? = nil) -> MTLTexture {
-        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: pixelFormat, width: size.x, height: size.y, mipmapped: mipmapped)
-        if let usage {
-            textureDescriptor.usage = usage
-        }
-        return makeTexture(descriptor: textureDescriptor)!
-    }
 
     func makeBuffer(bytesOf content: some Any, options: MTLResourceOptions) -> MTLBuffer? {
         withUnsafeBytes(of: content) { buffer in
-            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: .storageModeShared)
+            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: options)
         }
     }
 
     func makeBuffer(bytesOf content: [some Any], options: MTLResourceOptions) -> MTLBuffer? {
         content.withUnsafeBytes { buffer in
-            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: .storageModeShared)
+            makeBuffer(bytes: buffer.baseAddress!, length: buffer.count, options: options)
         }
-    }
-
-    @available(*, deprecated, message: "Do not use. Should be an extension on blit encoder")
-    func copy(from sourceBuffer: MTLBuffer, sourceOffset: Int, to destinationBuffer: MTLBuffer, destinationOffset: Int, size: Int) {
-        let commandQueue = makeCommandQueue()!
-        let commandBuffer = commandQueue.makeCommandBuffer()!
-        let commandEncoder = commandBuffer.makeBlitCommandEncoder()!
-        commandEncoder.copy(from: sourceBuffer, sourceOffset: sourceOffset, to: destinationBuffer, destinationOffset: destinationOffset, size: size)
-        commandEncoder.endEncoding()
-        commandBuffer.commit()
-    }
-
-    @available(*, deprecated, message: "Do not use. Should be an extension on blit encoder")
-    func makePrivateCopy(of sourceBuffer: MTLBuffer) -> MTLBuffer {
-        let privateBuffer = makeBuffer(length: sourceBuffer.length, options: .storageModePrivate)!
-        privateBuffer.label = "\(sourceBuffer.label ?? "Unlabeled buffer") private copy"
-        copy(from: sourceBuffer, sourceOffset: 0, to: privateBuffer, destinationOffset: 0, size: sourceBuffer.length)
-        return privateBuffer
     }
 
     var supportsNonuniformThreadGroupSizes: Bool {
         let families: [MTLGPUFamily] = [.apple4, .apple5, .apple6, .apple7]
         return families.contains { supportsFamily($0) }
-    }
-
-    @available(*, deprecated, message: "Do not use.")
-    func makeTexture2D<T>(width: Int, height: Int, pixelFormat: MTLPixelFormat, storageMode: MTLStorageMode, usage: MTLTextureUsage, pixels: [T], label: String? = nil) -> MTLTexture {
-        return pixels.withUnsafeBytes { bytes -> MTLTexture in
-            let descriptor = MTLTextureDescriptor()
-            descriptor.width = width
-            descriptor.height = height
-            descriptor.pixelFormat = pixelFormat
-            descriptor.storageMode = storageMode
-            descriptor.usage = usage
-
-            var bufferOptions: MTLResourceOptions = []
-            let buffer: MTLBuffer
-            if storageMode == .shared {
-                bufferOptions.insert(.storageModeShared)
-                buffer = makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: bufferOptions)!
-                buffer.label = label
-            }
-            else {
-                let sharedBuffer = makeBuffer(bytes: bytes.baseAddress!, length: bytes.count, options: .storageModeShared)!
-                buffer = makePrivateCopy(of: sharedBuffer)
-                buffer.label = label
-            }
-
-            let texture = buffer.makeTexture(descriptor: descriptor, offset: 0, bytesPerRow: descriptor.width * MemoryLayout<T>.stride)!
-            texture.label = label
-            return texture
-        }
     }
 }
 
