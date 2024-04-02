@@ -1,3 +1,5 @@
+*** Code has moved to http://github.com/schwa/SwiftGraphics***
+
 # MetalSupport
 
 A micro-package to make working with Metal somewhat nicer.
