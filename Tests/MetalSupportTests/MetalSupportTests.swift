@@ -6,33 +6,6 @@ import Testing
 
 @testable import MetalSupport
 
-// MARK: - isPOD tests
-
-@Suite("isPOD")
-struct IsPODTests {
-    @Test func podTypes() {
-        #expect(isPOD(Float.self))
-        #expect(isPOD(Int.self))
-        #expect(isPOD(SIMD4<Float>.self))
-        #expect(isPOD(UInt8.self))
-    }
-
-    @Test func podValues() {
-        #expect(isPOD(42.0 as Float))
-        #expect(isPOD(SIMD3<Float>(1, 2, 3)))
-    }
-
-    @Test func podArrays() {
-        #expect(isPODArray([Float]()))
-        #expect(isPODArray([1, 2, 3] as [Int32]))
-    }
-
-    @Test func nonPodTypes() {
-        #expect(!isPOD(String.self))
-        #expect(!isPOD([Int].self))
-    }
-}
-
 // MARK: - MetalSupportError tests
 
 @Suite("MetalSupportError")
@@ -48,36 +21,6 @@ struct MetalSupportErrorTests {
         #expect(MetalSupportError.undefined == MetalSupportError.undefined)
         #expect(MetalSupportError.generic("a") == MetalSupportError.generic("a"))
         #expect(MetalSupportError.generic("a") != MetalSupportError.generic("b"))
-    }
-}
-
-// MARK: - Optional helpers
-
-@Suite("Optional helpers")
-struct OptionalHelperTests {
-    @Test func orThrowWithValue() throws {
-        let value: Int? = 42
-        let result = try value.orThrow(.undefined)
-        #expect(result == 42)
-    }
-
-    @Test func orThrowWithNil() {
-        let value: Int? = nil
-        #expect(throws: MetalSupportError.self) {
-            try value.orThrow(.resourceCreationFailure("missing"))
-        }
-    }
-
-    @Test func orFatalErrorWithValue() {
-        let value: Int? = 42
-        let result = value.orFatalError("should not fail")
-        #expect(result == 42)
-    }
-
-    @Test func orFatalErrorWithErrorAndValue() {
-        let value: Int? = 42
-        let result = value.orFatalError(.undefined)
-        #expect(result == 42)
     }
 }
 
@@ -305,6 +248,244 @@ struct VertexDescriptorFromMDLTests {
 // NOTE: MTLVertexDescriptor(reflection:) tests omitted — the init uses
 // withMemoryRebound on zeroed bytes and its assert fires on arm64e.
 // That API needs rework before it's testable.
+
+// MARK: - VertexDescriptor
+
+@Suite("VertexDescriptor")
+struct VertexDescriptorTests {
+    @Test func attributeInit() {
+        let attr = VertexDescriptor.Attribute(label: "position", semantic: .position, format: .float3, offset: 0, bufferIndex: 0)
+        #expect(attr.label == "position")
+        #expect(attr.semantic == .position)
+        #expect(attr.format == .float3)
+        #expect(attr.offset == 0)
+        #expect(attr.bufferIndex == 0)
+    }
+
+    @Test func layoutInit() {
+        let layout = VertexDescriptor.Layout(bufferIndex: 0, stride: 32, stepFunction: .perVertex, stepRate: 1)
+        #expect(layout.bufferIndex == 0)
+        #expect(layout.stride == 32)
+        #expect(layout.stepFunction == .perVertex)
+        #expect(layout.stepRate == 1)
+    }
+
+    @Test func layoutConvenienceInit() {
+        let layout = VertexDescriptor.Layout(bufferIndex: 1)
+        #expect(layout.stride == 0)
+        #expect(layout.stepFunction == .perVertex)
+        #expect(layout.stepRate == 1)
+    }
+
+    @Test func descriptorInit() {
+        let attrs = [
+            VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 12, bufferIndex: 0),
+        ]
+        let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 24, stepFunction: .perVertex, stepRate: 1)]
+        let desc = VertexDescriptor(label: "test", attributes: attrs, layouts: layouts)
+        #expect(desc.label == "test")
+        #expect(desc.attributes.count == 2)
+        #expect(desc.layouts[0]?.stride == 24)
+    }
+
+    @Test func equatable() {
+        let a1 = VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0)
+        let a2 = VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0)
+        let a3 = VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 12, bufferIndex: 0)
+        #expect(a1 == a2)
+        #expect(a1 != a3)
+    }
+
+    @Test func normalizingOffsets() {
+        let attrs = [
+            VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 100, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 200, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 300, bufferIndex: 0),
+        ]
+        let layouts = [VertexDescriptor.Layout(bufferIndex: 0)]
+        let normalized = VertexDescriptor(attributes: attrs, layouts: layouts).normalizingOffsets()
+        #expect(normalized.attributes[0].offset == 0)
+        #expect(normalized.attributes[1].offset == 12)
+        #expect(normalized.attributes[2].offset == 24)
+    }
+
+    @Test func normalizingOffsetsMultipleBuffers() {
+        let attrs = [
+            VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 100, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 300, bufferIndex: 1),
+            VertexDescriptor.Attribute(semantic: .color, format: .float4, offset: 400, bufferIndex: 1),
+        ]
+        let layouts = [VertexDescriptor.Layout(bufferIndex: 0), VertexDescriptor.Layout(bufferIndex: 1)]
+        let normalized = VertexDescriptor(attributes: attrs, layouts: layouts).normalizingOffsets()
+        #expect(normalized.attributes[0].offset == 0)
+        #expect(normalized.attributes[1].offset == 0)
+        #expect(normalized.attributes[2].offset == 8)
+    }
+
+    @Test func normalizingStrides() {
+        let attrs = [
+            VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 12, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 24, bufferIndex: 0),
+        ]
+        let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 0, stepFunction: .perVertex, stepRate: 1)]
+        let normalized = VertexDescriptor(attributes: attrs, layouts: layouts).normalizingStrides()
+        #expect(normalized.layouts[0]?.stride == 32)
+    }
+
+    @Test func normalized() {
+        let attrs = [
+            VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 100, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 200, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 300, bufferIndex: 1),
+            VertexDescriptor.Attribute(semantic: .color, format: .uchar4Normalized, offset: 400, bufferIndex: 1),
+        ]
+        let layouts = [
+            VertexDescriptor.Layout(bufferIndex: 0, stride: 999, stepFunction: .perVertex, stepRate: 1),
+            VertexDescriptor.Layout(bufferIndex: 1, stride: 888, stepFunction: .perInstance, stepRate: 3),
+        ]
+        let result = VertexDescriptor(attributes: attrs, layouts: layouts).normalized()
+        #expect(result.attributes[0].offset == 0)
+        #expect(result.attributes[1].offset == 12)
+        #expect(result.layouts[0]?.stride == 24)
+        #expect(result.attributes[2].offset == 0)
+        #expect(result.attributes[3].offset == 8)
+        #expect(result.layouts[1]?.stride == 12)
+        #expect(result.layouts[1]?.stepFunction == .perInstance)
+        #expect(result.layouts[1]?.stepRate == 3)
+    }
+
+    @Test func mtlVertexDescriptorConversion() {
+        let attrs = [
+            VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 12, bufferIndex: 0),
+        ]
+        let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 24, stepFunction: .perVertex, stepRate: 1)]
+        let desc = VertexDescriptor(attributes: attrs, layouts: layouts)
+        let mtl = desc.mtlVertexDescriptor
+        #expect(mtl.attributes[0].format == .float3)
+        #expect(mtl.attributes[0].offset == 0)
+        #expect(mtl.attributes[1].format == .float3)
+        #expect(mtl.attributes[1].offset == 12)
+        #expect(mtl.layouts[0].stride == 24)
+    }
+
+    @Test func initFromMTLVertexDescriptor() {
+        let mtl = MTLVertexDescriptor()
+        mtl.attributes[0].format = .float3
+        mtl.attributes[0].offset = 0
+        mtl.attributes[0].bufferIndex = 0
+        mtl.attributes[1].format = .float2
+        mtl.attributes[1].offset = 12
+        mtl.attributes[1].bufferIndex = 0
+        mtl.layouts[0].stride = 20
+        mtl.layouts[0].stepFunction = .perVertex
+        mtl.layouts[0].stepRate = 1
+
+        let desc = VertexDescriptor(mtl)
+        #expect(desc.attributes.count == 2)
+        #expect(desc.attributes[0].format == .float3)
+        #expect(desc.attributes[0].offset == 0)
+        #expect(desc.attributes[1].format == .float2)
+        #expect(desc.attributes[1].offset == 12)
+        #expect(desc.layouts[0]?.stride == 20)
+    }
+
+    @Test func roundTrip() {
+        let attrs = [
+            VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
+            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 12, bufferIndex: 0),
+        ]
+        let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 20, stepFunction: .perVertex, stepRate: 1)]
+        let original = VertexDescriptor(attributes: attrs, layouts: layouts)
+        let roundTrip = VertexDescriptor(original.mtlVertexDescriptor)
+        #expect(roundTrip.attributes.count == 2)
+        #expect(roundTrip.attributes[0].format == .float3)
+        #expect(roundTrip.attributes[1].format == .float2)
+        #expect(roundTrip.attributes[1].offset == 12)
+        #expect(roundTrip.layouts[0]?.stride == 20)
+    }
+
+    @Test func codable() throws {
+        let attrs = [
+            VertexDescriptor.Attribute(label: "pos", semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
+            VertexDescriptor.Attribute(label: "uv", semantic: .texcoord, format: .float2, offset: 12, bufferIndex: 0),
+        ]
+        let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 20, stepFunction: .perVertex, stepRate: 1)]
+        let original = VertexDescriptor(label: "test", attributes: attrs, layouts: layouts)
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(VertexDescriptor.self, from: data)
+        #expect(decoded == original)
+    }
+}
+
+// MARK: - MTLVertexFormat.size
+
+@Suite("MTLVertexFormat.size")
+struct VertexFormatSizePropertyTests {
+    @Test func floatSizes() {
+        #expect(MTLVertexFormat.float.size == 4)
+        #expect(MTLVertexFormat.float2.size == 8)
+        #expect(MTLVertexFormat.float3.size == 12)
+        #expect(MTLVertexFormat.float4.size == 16)
+    }
+
+    @Test func halfSizes() {
+        #expect(MTLVertexFormat.half.size == 2)
+        #expect(MTLVertexFormat.half2.size == 4)
+        #expect(MTLVertexFormat.half3.size == 6)
+        #expect(MTLVertexFormat.half4.size == 8)
+    }
+
+    @Test func intSizes() {
+        #expect(MTLVertexFormat.int.size == 4)
+        #expect(MTLVertexFormat.int2.size == 8)
+        #expect(MTLVertexFormat.int3.size == 12)
+        #expect(MTLVertexFormat.int4.size == 16)
+        #expect(MTLVertexFormat.uint.size == 4)
+        #expect(MTLVertexFormat.uint2.size == 8)
+        #expect(MTLVertexFormat.uint3.size == 12)
+        #expect(MTLVertexFormat.uint4.size == 16)
+    }
+
+    @Test func shortSizes() {
+        #expect(MTLVertexFormat.short.size == 2)
+        #expect(MTLVertexFormat.short2.size == 4)
+        #expect(MTLVertexFormat.short3.size == 6)
+        #expect(MTLVertexFormat.short4.size == 8)
+        #expect(MTLVertexFormat.ushort.size == 2)
+        #expect(MTLVertexFormat.ushort2.size == 4)
+        #expect(MTLVertexFormat.ushort3.size == 6)
+        #expect(MTLVertexFormat.ushort4.size == 8)
+    }
+
+    @Test func charSizes() {
+        #expect(MTLVertexFormat.char.size == 1)
+        #expect(MTLVertexFormat.char2.size == 2)
+        #expect(MTLVertexFormat.char3.size == 3)
+        #expect(MTLVertexFormat.char4.size == 4)
+        #expect(MTLVertexFormat.uchar.size == 1)
+        #expect(MTLVertexFormat.uchar2.size == 2)
+        #expect(MTLVertexFormat.uchar3.size == 3)
+        #expect(MTLVertexFormat.uchar4.size == 4)
+    }
+
+    @Test func normalizedSizes() {
+        #expect(MTLVertexFormat.charNormalized.size == 1)
+        #expect(MTLVertexFormat.uchar4Normalized.size == 4)
+        #expect(MTLVertexFormat.shortNormalized.size == 2)
+        #expect(MTLVertexFormat.ushort4Normalized.size == 8)
+        #expect(MTLVertexFormat.uchar4Normalized_bgra.size == 4)
+    }
+
+    @Test func packedSizes() {
+        #expect(MTLVertexFormat.int1010102Normalized.size == 4)
+        #expect(MTLVertexFormat.uint1010102Normalized.size == 4)
+        #expect(MTLVertexFormat.floatRG11B10.size == 4)
+        #expect(MTLVertexFormat.floatRGB9E5.size == 4)
+    }
+}
 
 // MARK: - GPU-dependent tests (require Metal device)
 

@@ -10,8 +10,13 @@ let package = Package(
     products: [
         .library(name: "MetalSupport", targets: ["MetalSupport"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.3.0"),
+    ],
     targets: [
-        .target(name: "MetalSupport"),
+        .target(name: "MetalSupport", dependencies: [
+            .product(name: "OrderedCollections", package: "swift-collections"),
+        ]),
         .testTarget(name: "MetalSupportTests", dependencies: ["MetalSupport"]),
     ]
 )
