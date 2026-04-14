@@ -11,16 +11,13 @@ import Testing
 @Suite("MetalSupportError")
 struct MetalSupportErrorTests {
     @Test func descriptions() {
-        #expect(MetalSupportError.undefined.description == "Undefined error")
-        #expect(MetalSupportError.generic("boom").description == "boom")
         #expect(MetalSupportError.resourceCreationFailure("texture").description == "Resource creation failure: texture")
-        #expect(MetalSupportError.unexpectedError(.undefined).description == "Unexpected error: Undefined error")
+        #expect(MetalSupportError.unexpectedError(.resourceCreationFailure("inner")).description == "Unexpected error: Resource creation failure: inner")
     }
 
     @Test func equatable() {
-        #expect(MetalSupportError.undefined == MetalSupportError.undefined)
-        #expect(MetalSupportError.generic("a") == MetalSupportError.generic("a"))
-        #expect(MetalSupportError.generic("a") != MetalSupportError.generic("b"))
+        #expect(MetalSupportError.resourceCreationFailure("a") == MetalSupportError.resourceCreationFailure("a"))
+        #expect(MetalSupportError.resourceCreationFailure("a") != MetalSupportError.resourceCreationFailure("b"))
     }
 }
 
