@@ -1,8 +1,3 @@
-public enum MetalSupportError: Error {
-    case illegalValue
+/// MetalSupport library.
+public enum MetalSupport {
 }
-
-internal func fatal(error: Error) -> Never {
-    fatalError("\(error)")
-}
-

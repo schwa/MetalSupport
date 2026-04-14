@@ -1,5 +1,5 @@
+import Testing
 @testable import MetalSupport
-import XCTest
 
-final class MetalSupportTests: XCTestCase {
+@Test func example() async throws {
 }
