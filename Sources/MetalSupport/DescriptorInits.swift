@@ -1,5 +1,37 @@
 import Metal
 
+public extension MTLArgumentDescriptor {
+    /// Creates an argument descriptor with the given parameters.
+    @available(iOS 17, macOS 14, *)
+    convenience init(dataType: MTLDataType, index: Int, arrayLength: Int? = nil, access: MTLBindingAccess? = nil, textureType: MTLTextureType? = nil, constantBlockAlignment: Int? = nil) {
+        self.init()
+        self.dataType = dataType
+        self.index = index
+        if let arrayLength {
+            self.arrayLength = arrayLength
+        }
+        if let access {
+            self.access = access
+        }
+        if let textureType {
+            self.textureType = textureType
+        }
+        if let constantBlockAlignment {
+            self.arrayLength = constantBlockAlignment
+        }
+    }
+}
+
+public extension MTLAttributeDescriptor {
+    /// Creates an attribute descriptor with the given format, offset, and buffer index.
+    convenience init(format: MTLAttributeFormat, offset: Int = 0, bufferIndex: Int) {
+        self.init()
+        self.format = format
+        self.offset = offset
+        self.bufferIndex = bufferIndex
+    }
+}
+
 public extension MTLDepthStencilDescriptor {
     /// Creates a depth-stencil descriptor with the given compare function.
     convenience init(depthCompareFunction: MTLCompareFunction, isDepthWriteEnabled: Bool = true) {

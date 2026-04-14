@@ -10,6 +10,16 @@ import UIKit
 #endif
 
 public extension MTLTexture {
+    /// The texture dimensions as an `MTLSize`.
+    var size: MTLSize {
+        MTLSize(width: width, height: height, depth: depth)
+    }
+
+    /// A region covering the entire texture.
+    var region: MTLRegion {
+        MTLRegion(origin: .zero, size: size)
+    }
+
     /// Converts the texture contents to a `CGImage`.
     ///
     /// Currently only supports `.bgra8Unorm` and `.bgra8Unorm_srgb` pixel formats.

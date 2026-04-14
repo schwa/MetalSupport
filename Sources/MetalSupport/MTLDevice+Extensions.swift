@@ -94,4 +94,10 @@ public extension MTLDevice {
         let value = SIMD4<UInt8>(color * 255.0)
         return try makeTexture(descriptor: descriptor, repeating: value)
     }
+
+    /// Whether the device supports non-uniform threadgroup sizes in compute dispatches.
+    var supportsNonuniformThreadGroupSizes: Bool {
+        let families: [MTLGPUFamily] = [.apple4, .apple5, .apple6, .apple7]
+        return families.contains { supportsFamily($0) }
+    }
 }

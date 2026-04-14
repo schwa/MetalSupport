@@ -1,5 +1,17 @@
 import Metal
 
+// MARK: - Argument encoder
+
+public extension MTLArgumentEncoder {
+    /// Copies a value's raw bytes into the argument buffer at the given index.
+    func setBytes<T>(of value: T, index: Int) {
+        withUnsafeBytes(of: value) { buffer in
+            let dest = UnsafeMutableRawBufferPointer(start: constantData(at: index), count: encodedLength)
+            buffer.copyBytes(to: dest)
+        }
+    }
+}
+
 // MARK: - Render command encoder: per-stage setters
 
 public extension MTLRenderCommandEncoder {

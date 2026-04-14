@@ -15,4 +15,20 @@ public extension MTLCommandBuffer {
     func _makeRenderCommandEncoder(descriptor: MTLRenderPassDescriptor) throws -> MTLRenderCommandEncoder {
         try makeRenderCommandEncoder(descriptor: descriptor).orThrow(.resourceCreationFailure("Could not create render command encoder."))
     }
+
+    /// Creates a render command encoder, executes `block`, then ends encoding.
+    ///
+    /// - Parameters:
+    ///   - descriptor: The render pass descriptor.
+    ///   - block: A closure that receives the encoder.
+    /// - Returns: The value returned by `block`.
+    func withRenderCommandEncoder<R>(descriptor: MTLRenderPassDescriptor, block: (MTLRenderCommandEncoder) throws -> R) rethrows -> R {
+        guard let renderCommandEncoder = makeRenderCommandEncoder(descriptor: descriptor) else {
+            fatalError("Failed to make render command encoder.")
+        }
+        defer {
+            renderCommandEncoder.endEncoding()
+        }
+        return try block(renderCommandEncoder)
+    }
 }
