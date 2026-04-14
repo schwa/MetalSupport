@@ -21,7 +21,7 @@ public extension MTLRenderCommandEncoder {
         drawIndexedPrimitives(type: submesh.primitiveType, indexCount: submesh.indexCount, indexType: submesh.indexType, indexBuffer: submesh.indexBuffer.buffer, indexBufferOffset: submesh.indexBuffer.offset)
     }
 
-    /// Issues instanced indexed draw calls for every submesh of the mesh.
+    /// Issues instanced indexed draw calls for every submesh.
     func draw(_ mesh: MTKMesh, instanceCount: Int) {
         for submesh in mesh.submeshes {
             draw(submesh, instanceCount: instanceCount)

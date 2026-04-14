@@ -1,7 +1,7 @@
 import Metal
 
 public extension MTLArgumentDescriptor {
-    /// Creates an argument descriptor with the given parameters.
+    /// Creates an argument descriptor.
     @available(iOS 17, macOS 14, *)
     convenience init(dataType: MTLDataType, index: Int, arrayLength: Int? = nil, access: MTLBindingAccess? = nil, textureType: MTLTextureType? = nil, constantBlockAlignment: Int? = nil) {
         self.init()

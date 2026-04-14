@@ -1,8 +1,11 @@
 import Metal
 import OrderedCollections
 
+/// A lightweight, `Codable`, `Sendable` vertex layout description with semantic annotations.
 public struct VertexDescriptor: Equatable, Sendable {
+    /// A single vertex attribute within a descriptor.
     public struct Attribute: Equatable, Sendable {
+        /// The semantic role of a vertex attribute.
         public enum Semantic: Equatable, Sendable, Codable {
             case unknown
             case position
@@ -14,12 +17,18 @@ public struct VertexDescriptor: Equatable, Sendable {
             case userDefined
         }
 
+        /// An optional human-readable label.
         public var label: String?
+        /// The semantic role of this attribute.
         public var semantic: Semantic
+        /// The vertex format.
         public var format: MTLVertexFormat
+        /// The byte offset within the buffer.
         public var offset: Int
+        /// The index of the buffer this attribute reads from.
         public var bufferIndex: Int
 
+        /// Creates an attribute.
         public init(label: String? = nil, semantic: Semantic, format: MTLVertexFormat, offset: Int, bufferIndex: Int) {
             self.label = label
             self.semantic = semantic
@@ -29,13 +38,18 @@ public struct VertexDescriptor: Equatable, Sendable {
         }
     }
 
+    /// A vertex buffer layout within a descriptor.
     public struct Layout: Equatable, Sendable {
-        // TODO: Add optional label.
+        /// The buffer index this layout describes.
         public var bufferIndex: Int
+        /// The stride in bytes between consecutive vertices.
         public var stride: Int
+        /// How the vertex data steps (per-vertex, per-instance, etc.).
         public var stepFunction: MTLVertexStepFunction
+        /// The rate at which the step function advances.
         public var stepRate: Int
 
+        /// Creates a layout.
         public init(bufferIndex: Int, stride: Int, stepFunction: MTLVertexStepFunction, stepRate: Int) {
             self.bufferIndex = bufferIndex
             self.stride = stride
@@ -44,10 +58,14 @@ public struct VertexDescriptor: Equatable, Sendable {
         }
     }
 
+    /// An optional human-readable label.
     public var label: String?
+    /// The vertex attributes.
     public var attributes: [Attribute]
+    /// The buffer layouts, keyed by buffer index.
     public var layouts: OrderedDictionary<Int, Layout>
 
+    /// Creates a vertex descriptor.
     public init(label: String? = nil, attributes: [Attribute], layouts: [Layout]) {
         self.label = label
         self.attributes = attributes
@@ -74,12 +92,14 @@ extension VertexDescriptor.Layout: CustomDebugStringConvertible {
 }
 
 public extension VertexDescriptor.Layout {
+    /// Creates a layout with default stride (0), per-vertex stepping, and step rate 1.
     init(bufferIndex: Int) {
         self.init(bufferIndex: bufferIndex, stride: 0, stepFunction: .perVertex, stepRate: 1)
     }
 }
 
 public extension VertexDescriptor {
+    /// Prints the descriptor to standard output for debugging.
     func dump() {
         print("VertexDescriptor: \(label ?? "nil")")
         print("Attributes:")
@@ -94,10 +114,12 @@ public extension VertexDescriptor {
 }
 
 public extension VertexDescriptor {
+    /// Returns a copy with both offsets and strides normalized.
     func normalized() -> Self {
         normalizingOffsets().normalizingStrides()
     }
 
+    /// Returns a copy with attribute offsets recomputed sequentially per buffer.
     func normalizingOffsets() -> Self {
         var copy = self
         var offsetsPerBufferIndex: [Int: Int] = [:]
@@ -111,6 +133,7 @@ public extension VertexDescriptor {
         return copy
     }
 
+    /// Returns a copy with layout strides computed from attribute offsets and sizes.
     func normalizingStrides() -> Self {
         var copy = self
         for (bufferIndex, layout) in copy.layouts {
@@ -127,6 +150,7 @@ public extension VertexDescriptor {
 }
 
 public extension VertexDescriptor {
+    /// Creates a vertex descriptor from an `MTLVertexDescriptor`.
     init(_ mtlVertexDescriptor: MTLVertexDescriptor) {
         var attributes: [Attribute] = []
         var layouts: [Layout] = []
@@ -165,6 +189,7 @@ public extension VertexDescriptor {
         self.init(label: nil, attributes: attributes, layouts: layouts)
     }
 
+    /// Converts to an `MTLVertexDescriptor`.
     var mtlVertexDescriptor: MTLVertexDescriptor {
         let mtlVertexDescriptor = MTLVertexDescriptor()
         for (index, attribute) in attributes.enumerated() {
@@ -186,6 +211,7 @@ public extension VertexDescriptor {
 }
 
 public extension MTLVertexDescriptor {
+    /// Creates an `MTLVertexDescriptor` from a ``VertexDescriptor``.
     convenience init(_ vertexDescriptor: VertexDescriptor) {
         self.init()
 
