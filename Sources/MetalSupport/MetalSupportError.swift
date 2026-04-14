@@ -32,21 +32,24 @@ extension MetalSupportError: CustomStringConvertible {
 
 extension Optional {
     func orThrow(_ error: @autoclosure () -> MetalSupportError) throws -> Wrapped {
-        guard let self else {
+        // swiftlint:disable:next self_binding
+        guard let value = self else {
             throw error()
         }
         return value
     }
 
     func orFatalError(_ message: @autoclosure () -> String = String()) -> Wrapped {
-        guard let self else {
+        // swiftlint:disable:next self_binding
+        guard let value = self else {
             fatalError(message())
         }
         return value
     }
 
     func orFatalError(_ error: @autoclosure () -> MetalSupportError) -> Wrapped {
-        guard let self else {
+        // swiftlint:disable:next self_binding
+        guard let value = self else {
             fatalError("\(error())")
         }
         return value
