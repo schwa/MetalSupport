@@ -585,4 +585,188 @@ struct GPUTests {
         let sampler = try device._makeSamplerState(descriptor: desc)
         #expect(sampler.device === device)
     }
+
+    @Test func bufferData() throws {
+        let values: [UInt8] = [1, 2, 3, 4]
+        let buffer = try device.makeBuffer(unsafeBytesOf: values)
+        let data = buffer.data()
+        #expect(data.count == 4)
+        #expect([UInt8](data) == values)
+    }
+
+    @Test func bufferWith() throws {
+        let buffer = try device.makeBuffer(unsafeBytesOf: Float(0))
+        buffer.with(type: Float.self) { value in
+            value = 42.0
+        }
+        let contents: UnsafeBufferPointer<Float> = buffer.contents()
+        #expect(contents[0] == 42.0)
+    }
+
+    @Test func bufferWithEx() throws {
+        let values: [Int32] = [10, 20, 30]
+        let buffer = try device.makeBuffer(unsafeBytesOf: values)
+        buffer.withEx(type: Int32.self, count: 3) { ptr in
+            ptr[1] = 99
+        }
+        let contents: UnsafeBufferPointer<Int32> = buffer.contents()
+        #expect(contents[0] == 10)
+        #expect(contents[1] == 99)
+        #expect(contents[2] == 30)
+    }
+
+    @Test func textureSize() throws {
+        let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 8, height: 16, mipmapped: false)
+        desc.storageMode = .shared
+        let texture = try device._makeTexture(descriptor: desc)
+        #expect(texture.size.width == 8)
+        #expect(texture.size.height == 16)
+        #expect(texture.size.depth == 1)
+    }
+
+    @Test func textureRegion() throws {
+        let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 4, height: 4, mipmapped: false)
+        desc.storageMode = .shared
+        let texture = try device._makeTexture(descriptor: desc)
+        let region = texture.region
+        #expect(region.origin.x == 0)
+        #expect(region.origin.y == 0)
+        #expect(region.size.width == 4)
+        #expect(region.size.height == 4)
+    }
+
+    @Test func supportsNonuniformThreadGroupSizes() {
+        // Just verify it returns without crashing
+        _ = device.supportsNonuniformThreadGroupSizes
+    }
+}
+
+// MARK: - MTLPixelFormat
+
+@Suite("MTLPixelFormat")
+struct PixelFormatTests {
+    @Test func bits8() {
+        #expect(MTLPixelFormat.r8Unorm.bits == 8)
+        #expect(MTLPixelFormat.a8Unorm.bits == 8)
+        #expect(MTLPixelFormat.stencil8.bits == 8)
+    }
+
+    @Test func bits16() {
+        #expect(MTLPixelFormat.r16Float.bits == 16)
+        #expect(MTLPixelFormat.rg8Unorm.bits == 16)
+        #expect(MTLPixelFormat.b5g6r5Unorm.bits == 16)
+        #expect(MTLPixelFormat.depth16Unorm.bits == 16)
+    }
+
+    @Test func bits32() {
+        #expect(MTLPixelFormat.rgba8Unorm.bits == 32)
+        #expect(MTLPixelFormat.bgra8Unorm.bits == 32)
+        #expect(MTLPixelFormat.r32Float.bits == 32)
+        #expect(MTLPixelFormat.rgb10a2Unorm.bits == 32)
+        #expect(MTLPixelFormat.depth32Float.bits == 32)
+    }
+
+    @Test func bits64() {
+        #expect(MTLPixelFormat.rgba16Float.bits == 64)
+        #expect(MTLPixelFormat.rg32Float.bits == 64)
+    }
+
+    @Test func bits128() {
+        #expect(MTLPixelFormat.rgba32Float.bits == 128)
+    }
+
+    @Test func size() {
+        #expect(MTLPixelFormat.rgba8Unorm.size == 4)
+        #expect(MTLPixelFormat.rgba16Float.size == 8)
+        #expect(MTLPixelFormat.rgba32Float.size == 16)
+        #expect(MTLPixelFormat.r8Unorm.size == 1)
+    }
+
+    @Test func nilCases() {
+        #expect(MTLPixelFormat.x32_stencil8.bits == nil)
+        #expect(MTLPixelFormat.x32_stencil8.size == nil)
+    }
+}
+
+// MARK: - MTLGeometry convenience inits
+
+@Suite("MTLGeometry")
+struct GeometryTests {
+    @Test func originZero() {
+        let o = MTLOrigin.zero
+        #expect(o.x == 0)
+        #expect(o.y == 0)
+        #expect(o.z == 0)
+    }
+
+    @Test func originFromCGPoint() {
+        let o = MTLOrigin(CGPoint(x: 10, y: 20))
+        #expect(o.x == 10)
+        #expect(o.y == 20)
+        #expect(o.z == 0)
+    }
+
+    @Test func sizeComponents() {
+        let s = MTLSize(3, 5, 7)
+        #expect(s.width == 3)
+        #expect(s.height == 5)
+        #expect(s.depth == 7)
+    }
+
+    @Test func sizeFromCGSize() {
+        let s = MTLSize(CGSize(width: 100, height: 200))
+        #expect(s.width == 100)
+        #expect(s.height == 200)
+        #expect(s.depth == 1)
+    }
+
+    @Test func regionFromCGRect() {
+        let r = MTLRegion(CGRect(x: 5, y: 10, width: 20, height: 30))
+        #expect(r.origin.x == 5)
+        #expect(r.origin.y == 10)
+        #expect(r.size.width == 20)
+        #expect(r.size.height == 30)
+    }
+}
+
+// MARK: - MTLIndexType / MTLPrimitiveType
+
+@Suite("MTLIndexType and MTLPrimitiveType")
+struct IndexAndPrimitiveTests {
+    @Test func indexSize() {
+        #expect(MTLIndexType.uint16.indexSize == 2)
+        #expect(MTLIndexType.uint32.indexSize == 4)
+    }
+
+    @Test func vertexCount() {
+        #expect(MTLPrimitiveType.point.vertexCount == 1)
+        #expect(MTLPrimitiveType.line.vertexCount == 2)
+        #expect(MTLPrimitiveType.triangle.vertexCount == 3)
+        #expect(MTLPrimitiveType.lineStrip.vertexCount == nil)
+        #expect(MTLPrimitiveType.triangleStrip.vertexCount == nil)
+    }
+}
+
+// MARK: - Descriptor inits (Argument / Attribute)
+
+@Suite("Descriptor inits")
+struct NewDescriptorInitTests {
+    @Test func argumentDescriptor() {
+        let desc = MTLArgumentDescriptor(dataType: .float4, index: 3, access: .readOnly)
+        #expect(desc.dataType == .float4)
+        #expect(desc.index == 3)
+        #expect(desc.access == .readOnly)
+    }
+
+    @Test func attributeDescriptor() {
+        let desc = MTLAttributeDescriptor(format: .float3, offset: 12, bufferIndex: 2)
+        #expect(desc.format == .float3)
+        #expect(desc.offset == 12)
+        #expect(desc.bufferIndex == 2)
+    }
+
+    @Test func attributeDescriptorDefaults() {
+        let desc = MTLAttributeDescriptor(format: .float2, bufferIndex: 0)
+        #expect(desc.offset == 0)
+    }
 }
