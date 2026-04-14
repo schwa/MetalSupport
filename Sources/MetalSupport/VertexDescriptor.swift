@@ -323,112 +323,166 @@ public extension MTLVertexFormat {
         switch self {
         case .invalid:
             fatalError("Invalid vertex format")
+
         case .uchar2:
             return MemoryLayout<UInt8>.size * 2
+
         case .uchar3:
             return MemoryLayout<UInt8>.size * 3
+
         case .uchar4:
             return MemoryLayout<UInt8>.size * 4
+
         case .char2:
             return MemoryLayout<Int8>.size * 2
+
         case .char3:
             return MemoryLayout<Int8>.size * 3
+
         case .char4:
             return MemoryLayout<Int8>.size * 4
+
         case .uchar2Normalized:
             return MemoryLayout<UInt8>.size * 2
+
         case .uchar3Normalized:
             return MemoryLayout<UInt8>.size * 3
+
         case .uchar4Normalized:
             return MemoryLayout<UInt8>.size * 4
+
         case .char2Normalized:
             return MemoryLayout<Int8>.size * 2
+
         case .char3Normalized:
             return MemoryLayout<Int8>.size * 3
+
         case .char4Normalized:
             return MemoryLayout<Int8>.size * 4
+
         case .ushort2:
             return MemoryLayout<UInt16>.size * 2
+
         case .ushort3:
             return MemoryLayout<UInt16>.size * 3
+
         case .ushort4:
             return MemoryLayout<UInt16>.size * 4
+
         case .short2:
             return MemoryLayout<Int16>.size * 2
+
         case .short3:
             return MemoryLayout<Int16>.size * 3
+
         case .short4:
             return MemoryLayout<Int16>.size * 4
+
         case .ushort2Normalized:
             return MemoryLayout<UInt16>.size * 2
+
         case .ushort3Normalized:
             return MemoryLayout<UInt16>.size * 3
+
         case .ushort4Normalized:
             return MemoryLayout<UInt16>.size * 4
+
         case .short2Normalized:
             return MemoryLayout<Int16>.size * 2
+
         case .short3Normalized:
             return MemoryLayout<Int16>.size * 3
+
         case .short4Normalized:
             return MemoryLayout<Int16>.size * 4
+
         case .half2:
             return MemoryLayout<Float16>.size * 2
+
         case .half3:
             return MemoryLayout<Float16>.size * 3
+
         case .half4:
             return MemoryLayout<Float16>.size * 4
+
         case .float:
             return MemoryLayout<Float>.size
+
         case .float2:
             return MemoryLayout<Float>.size * 2
+
         case .float3:
             return MemoryLayout<Float>.size * 3
+
         case .float4:
             return MemoryLayout<Float>.size * 4
+
         case .int:
             return MemoryLayout<Int32>.size
+
         case .int2:
             return MemoryLayout<Int32>.size * 2
+
         case .int3:
             return MemoryLayout<Int32>.size * 3
+
         case .int4:
             return MemoryLayout<Int32>.size * 4
+
         case .uint:
             return MemoryLayout<UInt32>.size
+
         case .uint2:
             return MemoryLayout<UInt32>.size * 2
+
         case .uint3:
             return MemoryLayout<UInt32>.size * 3
+
         case .uint4:
             return MemoryLayout<UInt32>.size * 4
+
         case .int1010102Normalized:
             return MemoryLayout<UInt32>.size
+
         case .uint1010102Normalized:
             return MemoryLayout<UInt32>.size
+
         case .uchar4Normalized_bgra:
             return MemoryLayout<UInt8>.size * 4
+
         case .uchar:
             return MemoryLayout<UInt8>.size
+
         case .char:
             return MemoryLayout<Int8>.size
+
         case .ucharNormalized:
             return MemoryLayout<UInt8>.size
+
         case .charNormalized:
             return MemoryLayout<Int8>.size
+
         case .ushort:
             return MemoryLayout<UInt16>.size
+
         case .short:
             return MemoryLayout<Int16>.size
+
         case .ushortNormalized:
             return MemoryLayout<UInt16>.size
+
         case .shortNormalized:
             return MemoryLayout<Int16>.size
+
         case .half:
             return MemoryLayout<Float16>.size
+
         case .floatRG11B10:
             return MemoryLayout<UInt32>.size
+
         case .floatRGB9E5:
             return MemoryLayout<UInt32>.size
+
         @unknown default:
             fatalError("Unknown vertex format")
         }

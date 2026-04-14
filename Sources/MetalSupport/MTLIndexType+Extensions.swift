@@ -6,8 +6,10 @@ public extension MTLIndexType {
         switch self {
         case .uint16:
             return MemoryLayout<UInt16>.size
+
         case .uint32:
             return MemoryLayout<UInt32>.size
+
         @unknown default:
             fatalError("Unknown MTLIndexType")
         }
@@ -20,12 +22,16 @@ public extension MTLPrimitiveType {
         switch self {
         case .point:
             return 1
+
         case .line:
             return 2
+
         case .triangle:
             return 3
+
         case .lineStrip, .triangleStrip:
             return nil
+
         @unknown default:
             return nil
         }
