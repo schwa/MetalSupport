@@ -100,11 +100,19 @@ struct VertexFormatFromMDLTests {
     @Test func normalizedFormats() {
         #expect(MTLVertexFormat(MDLVertexFormat.charNormalized) == .charNormalized)
         #expect(MTLVertexFormat(MDLVertexFormat.char2Normalized) == .char2Normalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.char3Normalized) == .char3Normalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.char4Normalized) == .char4Normalized)
         #expect(MTLVertexFormat(MDLVertexFormat.uCharNormalized) == .ucharNormalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.uChar2Normalized) == .uchar2Normalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.uChar3Normalized) == .uchar3Normalized)
         #expect(MTLVertexFormat(MDLVertexFormat.uChar4Normalized) == .uchar4Normalized)
         #expect(MTLVertexFormat(MDLVertexFormat.shortNormalized) == .shortNormalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.short2Normalized) == .short2Normalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.short3Normalized) == .short3Normalized)
         #expect(MTLVertexFormat(MDLVertexFormat.short4Normalized) == .short4Normalized)
         #expect(MTLVertexFormat(MDLVertexFormat.uShortNormalized) == .ushortNormalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.uShort2Normalized) == .ushort2Normalized)
+        #expect(MTLVertexFormat(MDLVertexFormat.uShort3Normalized) == .ushort3Normalized)
         #expect(MTLVertexFormat(MDLVertexFormat.uShort4Normalized) == .ushort4Normalized)
     }
 
