@@ -1,3 +1,4 @@
+import Foundation
 import Metal
 @testable import MetalSupport
 import Testing
@@ -105,7 +106,8 @@ struct CommandBufferAndQueueTests {
 
     // MARK: - Command buffer descriptor
 
-    @Test func commandBufferDescriptorDefaultLogging() throws {
+    @Test(.disabled(if: ProcessInfo.processInfo.environment["CI"] != nil, "MTLLogState residency sets are unavailable on CI runners"))
+    func commandBufferDescriptorDefaultLogging() throws {
         let desc = MTLCommandBufferDescriptor()
         try desc.addDefaultLogging()
         #expect(desc.logState != nil)
