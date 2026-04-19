@@ -118,6 +118,7 @@ struct VertexFormatSizeRemainingTests {
         #expect(MTLVertexFormat.ushort3Normalized.size == 6)
         #expect(MTLVertexFormat.ushort4Normalized.size == 8)
         #expect(MTLVertexFormat.ucharNormalized.size == 1)
+        #expect(MTLVertexFormat.ushortNormalized.size == 2)
     }
 }
 
@@ -130,6 +131,11 @@ struct PixelFormatRemainingTests {
         #expect(MTLPixelFormat.r8Uint.bits == 8)
     }
 
+    @Test func packed32Bit() {
+        #expect(MTLPixelFormat.bgr10a2Unorm.bits == 32)
+        #expect(MTLPixelFormat.rgb9e5Float.bits == 32)
+    }
+
     @Test func depthStencil() {
         #expect(MTLPixelFormat.depth32Float_stencil8.bits == 40)
         #expect(MTLPixelFormat.depth32Float_stencil8.size == 5)
@@ -137,6 +143,20 @@ struct PixelFormatRemainingTests {
 
     @Test func xStencilNil() {
         #expect(MTLPixelFormat.x24_stencil8.bits == nil)
+    }
+}
+
+// MARK: - MTLDevice.makeTexture(name:bundle:)
+
+@Suite("MTLDevice.makeTexture(name:bundle:)")
+struct MakeTextureNamedTests {
+    @Test func missingTextureThrows() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            return
+        }
+        #expect(throws: (any Error).self) {
+            try device.makeTexture(name: "this-texture-does-not-exist", bundle: Bundle.main)
+        }
     }
 }
 
