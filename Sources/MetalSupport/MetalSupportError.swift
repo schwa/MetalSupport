@@ -4,6 +4,12 @@ import Foundation
 public indirect enum MetalSupportError: Error, Equatable {
     /// A Metal or system resource could not be created.
     case resourceCreationFailure(String)
+    /// The caller-supplied value's byte size did not match the texture's pixel stride.
+    case invalidPixelStride(String)
+    /// The texture's pixel format is not supported by this operation.
+    case unsupportedPixelFormat(String)
+    /// The texture's storage mode is not supported by this operation.
+    case unsupportedStorageMode(String)
     /// Wraps another ``MetalSupportError`` that was not expected.
     case unexpectedError(Self)
 }
@@ -13,6 +19,15 @@ extension MetalSupportError: CustomStringConvertible {
         switch self {
         case .resourceCreationFailure(let message):
             return "Resource creation failure: \(message)"
+
+        case .invalidPixelStride(let message):
+            return "Invalid pixel stride: \(message)"
+
+        case .unsupportedPixelFormat(let message):
+            return "Unsupported pixel format: \(message)"
+
+        case .unsupportedStorageMode(let message):
+            return "Unsupported storage mode: \(message)"
 
         case .unexpectedError(let error):
             return "Unexpected error: \(error)"
