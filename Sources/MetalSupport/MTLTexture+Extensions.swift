@@ -190,9 +190,13 @@ private extension MTLStorageMode {
     /// `replace(region:...)` / `getBytes(...)`. Covers `.shared` on all
     /// platforms and `.managed` on macOS.
     var isCPUAccessible: Bool {
-        if self == .shared { return true }
+        if self == .shared {
+            return true
+        }
         #if os(macOS)
-        if self == .managed { return true }
+        if self == .managed {
+            return true
+        }
         #endif
         return false
     }
