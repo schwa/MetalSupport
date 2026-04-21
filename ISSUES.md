@@ -219,10 +219,12 @@ These were deferred because blit-from-buffer into depth/stencil textures has ext
 ## 9: setUnsafeBytes uses MemoryLayout.size instead of .stride, triggering Metal validation errors
 
 +++
-status: new
+status: closed
 priority: critical
 kind: bug
 created: 2026-04-21T01:54:49Z
+updated: 2026-04-21T04:51:24Z
+closed: 2026-04-21T04:51:24Z
 +++
 
 The four [48;5;235m[38;5;249msetUnsafeBytes[49m[39m helpers in [48;5;235m[38;5;249mSources/MetalSupport/UnsafeBytes.swift[49m[39m
@@ -262,5 +264,7 @@ writing garbage in the pad is harmless (those bytes are never read by
 the shader).
 
 Surfaced by: MetalSprockets#302 (now closed, redirected here).
+
+- `2026-04-21T04:51:24Z`: Fixed by using MemoryLayout<T>.stride instead of buffer.count in setUnsafeBytes helpers.
 
 ---

@@ -16,78 +16,78 @@ public extension MTLArgumentEncoder {
 
 public extension MTLRenderCommandEncoder {
     /// Sets vertex bytes from an array's raw storage.
-    func setVertexUnsafeBytes(of value: [some Any], index: Int) {
+    func setVertexUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         value.withUnsafeBytes { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setVertexBytes(baseAddress, length: buffer.count, index: index)
+            setVertexBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
         }
     }
 
     /// Sets vertex bytes from a value's raw storage.
-    func setVertexUnsafeBytes(of value: some Any, index: Int) {
+    func setVertexUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
         withUnsafeBytes(of: value) { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setVertexBytes(baseAddress, length: buffer.count, index: index)
+            setVertexBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
         }
     }
 
     /// Sets fragment bytes from an array's raw storage.
-    func setFragmentUnsafeBytes(of value: [some Any], index: Int) {
+    func setFragmentUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         value.withUnsafeBytes { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setFragmentBytes(baseAddress, length: buffer.count, index: index)
+            setFragmentBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
         }
     }
 
     /// Sets fragment bytes from a value's raw storage.
-    func setFragmentUnsafeBytes(of value: some Any, index: Int) {
+    func setFragmentUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
         withUnsafeBytes(of: value) { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setFragmentBytes(baseAddress, length: buffer.count, index: index)
+            setFragmentBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
         }
     }
 
     /// Sets object bytes from an array's raw storage.
-    func setObjectUnsafeBytes(of value: [some Any], index: Int) {
+    func setObjectUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         value.withUnsafeBytes { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setObjectBytes(baseAddress, length: buffer.count, index: index)
+            setObjectBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
         }
     }
 
     /// Sets object bytes from a value's raw storage.
-    func setObjectUnsafeBytes(of value: some Any, index: Int) {
+    func setObjectUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
         withUnsafeBytes(of: value) { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setObjectBytes(baseAddress, length: buffer.count, index: index)
+            setObjectBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
         }
     }
 
     /// Sets mesh bytes from an array's raw storage.
-    func setMeshUnsafeBytes(of value: [some Any], index: Int) {
+    func setMeshUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         value.withUnsafeBytes { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setMeshBytes(baseAddress, length: buffer.count, index: index)
+            setMeshBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
         }
     }
 
     /// Sets mesh bytes from a value's raw storage.
-    func setMeshUnsafeBytes(of value: some Any, index: Int) {
+    func setMeshUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
         withUnsafeBytes(of: value) { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setMeshBytes(baseAddress, length: buffer.count, index: index)
+            setMeshBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
         }
     }
 }
@@ -96,7 +96,7 @@ public extension MTLRenderCommandEncoder {
 
 public extension MTLRenderCommandEncoder {
     /// Sets bytes for the specified function type from an array's raw storage.
-    func setUnsafeBytes(of value: [some Any], index: Int, functionType: MTLFunctionType) {
+    func setUnsafeBytes<T>(of value: [T], index: Int, functionType: MTLFunctionType) {
         precondition(index >= 0)
         switch functionType {
         case .vertex: setVertexUnsafeBytes(of: value, index: index)
@@ -108,7 +108,7 @@ public extension MTLRenderCommandEncoder {
     }
 
     /// Sets bytes for the specified function type from a value's raw storage.
-    func setUnsafeBytes(of value: some Any, index: Int, functionType: MTLFunctionType) {
+    func setUnsafeBytes<T>(of value: T, index: Int, functionType: MTLFunctionType) {
         precondition(index >= 0)
         assert(isPOD(value))
         switch functionType {
@@ -158,21 +158,21 @@ public extension MTLRenderCommandEncoder {
 
 public extension MTLComputeCommandEncoder {
     /// Sets compute bytes from an array's raw storage.
-    func setUnsafeBytes(of value: [some Any], index: Int) {
+    func setUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         value.withUnsafeBytes { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setBytes(baseAddress, length: buffer.count, index: index)
+            setBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
         }
     }
 
     /// Sets compute bytes from a value's raw storage.
-    func setUnsafeBytes(of value: some Any, index: Int) {
+    func setUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
         withUnsafeBytes(of: value) { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setBytes(baseAddress, length: buffer.count, index: index)
+            setBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
         }
     }
 }
