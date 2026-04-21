@@ -59,7 +59,7 @@ public extension MTLTexture {
     func fill<T>(with value: T, region: MTLRegion? = nil, mipmapLevel: Int = 0, slice: Int = 0) throws {
         precondition(isPOD(value))
         try validateFillPreconditions(valueStride: MemoryLayout<T>.stride)
-        guard storageMode == .shared || storageMode == .managed else {
+        guard storageMode.isCPUAccessible else {
             throw MetalSupportError.unsupportedStorageMode("fill(with:) without an encoder/queue requires .shared or .managed storage; use the encoder or queue overload for .private textures.")
         }
         let region = region ?? mipRegion(level: mipmapLevel)
@@ -82,7 +82,7 @@ public extension MTLTexture {
         try validateFillPreconditions(valueStride: MemoryLayout<T>.stride)
         let region = region ?? mipRegion(level: mipmapLevel)
 
-        if storageMode == .shared || storageMode == .managed {
+        if storageMode.isCPUAccessible {
             try fill(with: value, region: region, mipmapLevel: mipmapLevel, slice: slice)
             return
         }
@@ -122,7 +122,7 @@ public extension MTLTexture {
         try validateFillPreconditions(valueStride: MemoryLayout<T>.stride)
         let region = region ?? mipRegion(level: mipmapLevel)
 
-        if storageMode == .shared || storageMode == .managed {
+        if storageMode.isCPUAccessible {
             try fill(with: value, region: region, mipmapLevel: mipmapLevel, slice: slice)
             return
         }
@@ -183,6 +183,19 @@ private struct FillBytes<T> {
     var bytes: [T]
     var bytesPerRow: Int
     var bytesPerImage: Int
+}
+
+private extension MTLStorageMode {
+    /// Whether this storage mode allows direct CPU access via
+    /// `replace(region:...)` / `getBytes(...)`. Covers `.shared` on all
+    /// platforms and `.managed` on macOS.
+    var isCPUAccessible: Bool {
+        if self == .shared { return true }
+        #if os(macOS)
+        if self == .managed { return true }
+        #endif
+        return false
+    }
 }
 
 private extension MTLTexture {

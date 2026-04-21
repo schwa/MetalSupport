@@ -34,7 +34,12 @@ struct TextureFillTests {
         var pixels = [UInt32](repeating: 0, count: count)
         let bytesPerRow = texture.width * 4
 
-        if texture.storageMode == .shared || texture.storageMode == .managed {
+        #if os(macOS)
+        let cpuAccessible = texture.storageMode == .shared || texture.storageMode == .managed
+        #else
+        let cpuAccessible = texture.storageMode == .shared
+        #endif
+        if cpuAccessible {
             pixels.withUnsafeMutableBytes { buffer in
                 texture.getBytes(buffer.baseAddress!, bytesPerRow: bytesPerRow, from: texture.region, mipmapLevel: 0)
             }
