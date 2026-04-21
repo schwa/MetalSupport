@@ -215,3 +215,52 @@ These were deferred because blit-from-buffer into depth/stencil textures has ext
 - Update error messaging / documentation for any formats that remain unsupported.
 
 ---
+
+## 9: setUnsafeBytes uses MemoryLayout.size instead of .stride, triggering Metal validation errors
+
++++
+status: new
+priority: critical
+kind: bug
+created: 2026-04-21T01:54:49Z
++++
+
+The four [48;5;235m[38;5;249msetUnsafeBytes[49m[39m helpers in [48;5;235m[38;5;249mSources/MetalSupport/UnsafeBytes.swift[49m[39m
+use the size of the raw buffer returned by [48;5;235m[38;5;249mwithUnsafeBytes(of:)[49m[39m as the
+byte count when calling [48;5;235m[38;5;249msetBytes[49m[39m / [48;5;235m[38;5;249msetVertexBytes[49m[39m / etc. That value is
+[48;5;235m[38;5;249mMemoryLayout<T>.size[49m[39m, which does not include trailing alignment padding.
+Metal shader reflection reports [48;5;235m[38;5;249mMemoryLayout<T>.stride[49m[39m, so validation
+fails whenever a struct has different size and stride.
+
+Reproduction:
+
+    import simd
+    struct Mixed { var m = simd_float4x4(1); var v = SIMD2<Float>() }
+    print(MemoryLayout<Mixed>.size)    // 72
+    print(MemoryLayout<Mixed>.stride)  // 80
+    withUnsafeBytes(of: Mixed()) { buf in
+        print(buf.count)               // 72 — the bug
+    }
+
+Metal validation error seen in MetalSprockets:
+
+    Vertex Function(...): argument view[0] from Buffer(1) with offset(0)
+    and length(72) has space for 72 bytes, but argument has a length(80).
+
+Call sites (all in [48;5;235m[38;5;249mSources/MetalSupport/UnsafeBytes.swift[49m[39m):
+
+- line 99:  [48;5;235m[38;5;249msetUnsafeBytes(of: [some Any], index:, functionType:)[49m[39m
+- line 111: [48;5;235m[38;5;249msetUnsafeBytes(of: some Any, index:, functionType:)[49m[39m
+- line 161: [48;5;235m[38;5;249msetUnsafeBytes(of: [some Any], index:)[49m[39m
+- line 170: [48;5;235m[38;5;249msetUnsafeBytes(of: some Any, index:)[49m[39m
+
+Fix: pass [48;5;235m[38;5;249mMemoryLayout<T>.stride[49m[39m (or [48;5;235m[38;5;249mMemoryLayout<T>.stride * array.count[49m[39m for
+the array overloads) as the length to [48;5;235m[38;5;249msetBytes[49m[39m, instead of [48;5;235m[38;5;249mbuffer.count[49m[39m.
+The value still writes from [48;5;235m[38;5;249mbuffer.baseAddress[49m[39m, but padding past [48;5;235m[38;5;249m.size[49m[39m up
+to [48;5;235m[38;5;249m.stride[49m[39m is permitted because Metal reads [48;5;235m[38;5;249mstride[49m[39m bytes regardless;
+writing garbage in the pad is harmless (those bytes are never read by
+the shader).
+
+Surfaced by: MetalSprockets#302 (now closed, redirected here).
+
+---
