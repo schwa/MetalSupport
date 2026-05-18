@@ -268,3 +268,31 @@ Surfaced by: MetalSprockets#302 (now closed, redirected here).
 - `2026-04-21T04:51:24Z`: Fixed by using MemoryLayout<T>.stride instead of buffer.count in setUnsafeBytes helpers.
 
 ---
+
+## 10: Replace isPOD with BitwiseCopyable where possible
+
++++
+status: new
+priority: low
+kind: enhancement
+created: 2026-05-18T04:26:36Z
++++
+
+Swift 6's `BitwiseCopyable` protocol covers most of what our `isPOD`/`_isPOD` helper checks (trivially copyable, no refs, no ARC), but as a compile-time constraint rather than a runtime check.
+
+Investigate replacing uses of `isPOD` defined in `Sources/MetalSupport/BaseSupport.swift` and its call sites:
+
+- `Sources/MetalSupport/MTLTexture+Extensions.swift` (lines 60, 81, 121)
+- `Sources/MetalSupport/MTLDevice+Extensions.swift` (lines 40, 49, 58, 75)
+- `Sources/MetalSupport/UnsafeBytes.swift` (multiple)
+- `Sources/MetalSupport/MTLVertexDescriptor+Extensions.swift` (line 44)
+
+Where the surrounding APIs are generic, prefer constraining `<T: BitwiseCopyable>` so the check becomes compile-time and stricter.
+
+Caveats:
+- `BitwiseCopyable` requires declared/synthesized conformance; `_isPOD` is purely structural at runtime and may return true for types not marked `BitwiseCopyable`.
+- If any call site takes erased `Any` values, a runtime check still needs to stay.
+
+Decide: convert what we can to generic `BitwiseCopyable` constraints, keep `isPOD` only where runtime erasure forces it.
+
+---
