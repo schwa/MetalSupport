@@ -397,13 +397,25 @@ public extension MTLVertexFormat {
             return MemoryLayout<Int16>.size * 4
 
         case .half2:
+            #if arch(arm64)
             return MemoryLayout<Float16>.size * 2
+            #else
+            return 2 * 2 // Float16 is unavailable on x86_64 macOS
+            #endif
 
         case .half3:
+            #if arch(arm64)
             return MemoryLayout<Float16>.size * 3
+            #else
+            return 2 * 3 // Float16 is unavailable on x86_64 macOS
+            #endif
 
         case .half4:
+            #if arch(arm64)
             return MemoryLayout<Float16>.size * 4
+            #else
+            return 2 * 4 // Float16 is unavailable on x86_64 macOS
+            #endif
 
         case .float:
             return MemoryLayout<Float>.size
@@ -475,7 +487,11 @@ public extension MTLVertexFormat {
             return MemoryLayout<Int16>.size
 
         case .half:
+            #if arch(arm64)
             return MemoryLayout<Float16>.size
+            #else
+            return 2 // Float16 is unavailable on x86_64 macOS
+            #endif
 
         case .floatRG11B10:
             return MemoryLayout<UInt32>.size
