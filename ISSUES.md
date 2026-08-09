@@ -310,12 +310,13 @@ Decide: convert what we can to generic `BitwiseCopyable` constraints, keep `isPO
 ## 11: Cache the system default device in _MTLCreateSystemDefaultDevice()
 
 +++
-status: open
+status: closed
 priority: medium
 kind: enhancement
 labels: effort:s
 created: 2026-08-09T17:36:06Z
-updated: 2026-08-09T19:32:10Z
+updated: 2026-08-09T19:34:05Z
+closed: 2026-08-09T19:34:05Z
 +++
 
 _MTLCreateSystemDefaultDevice() calls MTLCreateSystemDefaultDevice() afresh on every invocation. Consumers treat it as a cheap accessor and call it ad hoc all over the place — MetalSprocketsExamples alone has 57 call sites, and MetalSupport itself calls it repeatedly (MTKMesh+Extensions, MTLCommandBufferDescriptor+Extensions).

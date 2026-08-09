@@ -510,6 +510,10 @@ struct GPUTests {
         #expect(device.name.isEmpty == false)
     }
 
+    @Test func createSystemDefaultDeviceIsCached() {
+        #expect(_MTLCreateSystemDefaultDevice() === _MTLCreateSystemDefaultDevice())
+    }
+
     @Test func makeCommandQueue() throws {
         let queue = try device._makeCommandQueue()
         #expect(queue.device === device)

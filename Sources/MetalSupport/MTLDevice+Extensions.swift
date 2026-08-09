@@ -3,9 +3,19 @@ import MetalKit
 import simd
 
 /// Returns the system default Metal device, or calls `fatalError` if unavailable.
+///
+/// The device is created once and cached for the lifetime of the process, so callers can treat
+/// this as a cheap accessor.
 public func _MTLCreateSystemDefaultDevice() -> MTLDevice {
-    // swiftlint:disable:next MTLCreateSystemDefaultDevice
-    MTLCreateSystemDefaultDevice().orFatalError(.unexpectedError(.resourceCreationFailure("Could not create system default device.")))
+    SystemDefaultDevice.shared
+}
+
+private enum SystemDefaultDevice {
+    // Global `let` initialisation is lazy and run-once, which gives us thread-safe caching for free.
+    static let shared: MTLDevice = {
+        // swiftlint:disable:next MTLCreateSystemDefaultDevice
+        MTLCreateSystemDefaultDevice().orFatalError(.unexpectedError(.resourceCreationFailure("Could not create system default device.")))
+    }()
 }
 
 public extension MTLDevice {
