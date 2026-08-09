@@ -5,11 +5,12 @@
 ## 1: Deduplicate setUnsafeBytes boilerplate in UnsafeBytes.swift
 
 +++
-status: new
+status: open
 priority: low
 kind: enhancement
-labels: architecture, code-duplication
+labels: architecture, code-duplication, effort:m
 created: 2026-04-14T21:13:14Z
+updated: 2026-08-09T19:32:09Z
 +++
 
 UnsafeBytes.swift contains 10 nearly-identical methods on MTLRenderCommandEncoder (vertex/fragment/object/mesh × value/array) plus 2 on MTLComputeCommandEncoder. Each repeats the same withUnsafeBytes → baseAddress → setXxxBytes pattern. Extract a single generic helper to reduce duplication and make the pattern testable.
@@ -19,11 +20,12 @@ UnsafeBytes.swift contains 10 nearly-identical methods on MTLRenderCommandEncode
 ## 2: Remove or rework MTLVertexDescriptor.init(reflection:)
 
 +++
-status: new
+status: open
 priority: medium
 kind: bug
-labels: architecture, vertex-descriptor, broken
+labels: architecture, vertex-descriptor, broken, effort:m, needs-decision
 created: 2026-04-14T21:13:14Z
+updated: 2026-08-09T19:32:10Z
 +++
 
 The reflection-based MTLVertexDescriptor.init(reflection:) uses withMemoryRebound on zeroed bytes + Mirror, which is inherently unsafe. The test file notes 'its assert fires on arm64e. That API needs rework before it is testable.' It also duplicates type→format knowledge from other files. Either fix it properly or remove it.
@@ -33,11 +35,12 @@ The reflection-based MTLVertexDescriptor.init(reflection:) uses withMemoryReboun
 ## 3: Consolidate vertex format size tables
 
 +++
-status: new
+status: open
 priority: medium
 kind: enhancement
-labels: architecture, vertex-descriptor
+labels: architecture, vertex-descriptor, effort:m
 created: 2026-04-14T21:13:27Z
+updated: 2026-08-09T19:32:09Z
 +++
 
 Three separate exhaustive switch statements map MTLVertexFormat to byte sizes: MTLVertexFormat.size in VertexDescriptor.swift, MTLVertexFormat.size(packed:) in MTLVertexFormat+Extensions.swift, and inferredVertexDescriptor() in MTLFunction+Extensions.swift. The reflection-based MTLVertexDescriptor.init(reflection:) duplicates the same type-to-format+size mapping again. Unify into a single source of truth.
@@ -47,11 +50,12 @@ Three separate exhaustive switch statements map MTLVertexFormat to byte sizes: M
 ## 4: Extract Labeled protocol to replace copy-pasted labeled(_:) methods
 
 +++
-status: new
+status: open
 priority: low
 kind: enhancement
-labels: architecture, code-duplication
+labels: architecture, code-duplication, effort:s
 created: 2026-04-14T21:13:38Z
+updated: 2026-08-09T19:32:09Z
 +++
 
 Labeled.swift has five identical labeled(_:) methods copy-pasted across MTLCommandQueue, MTLCommandBuffer, MTLRenderCommandEncoder, MTLTexture, and MTLBuffer. These could be a single protocol extension on anything with a settable label property.
@@ -61,11 +65,12 @@ Labeled.swift has five identical labeled(_:) methods copy-pasted across MTLComma
 ## 5: Deduplicate withDebugGroup methods in DebugGroup.swift
 
 +++
-status: new
+status: open
 priority: low
 kind: enhancement
-labels: architecture, code-duplication
+labels: architecture, code-duplication, effort:s
 created: 2026-04-14T21:13:44Z
+updated: 2026-08-09T19:32:09Z
 +++
 
 Four identical withDebugGroup methods on MTLCommandBuffer, MTLRenderCommandEncoder, MTLComputeCommandEncoder, and MTLBlitCommandEncoder. Same pattern, same body, same signature. Could be unified via a protocol.
@@ -75,11 +80,12 @@ Four identical withDebugGroup methods on MTLCommandBuffer, MTLRenderCommandEncod
 ## 6: Investigate MTLLogState failure on CI runners
 
 +++
-status: new
+status: open
 priority: low
 kind: task
-labels: testing, ci, metal
+labels: testing, ci, metal, effort:m
 created: 2026-04-19T19:51:47Z
+updated: 2026-08-09T19:32:09Z
 +++
 
 The `commandBufferDescriptorDefaultLogging()` test in `Tests/MetalSupportTests/CommandBufferAndQueueTests.swift` is currently disabled on CI (gated on the `CI` env var) because `MTLLogState` creation fails on GitHub Actions macOS runners with:
@@ -188,10 +194,12 @@ Out of scope for v1: `.memoryless`, cube/array slices, non-`waitUntilCompleted` 
 ## 8: Support depth/stencil pixel formats in MTLTexture.fill()
 
 +++
-status: new
+status: open
 priority: low
 kind: enhancement
+labels: effort:l
 created: 2026-04-20T18:34:15Z
+updated: 2026-08-09T19:32:09Z
 +++
 
 Follow-up to #7. The initial `MTLTexture.fill()` implementation throws `unsupportedPixelFormat` for depth/stencil formats:
@@ -272,10 +280,12 @@ Surfaced by: MetalSprockets#302 (now closed, redirected here).
 ## 10: Replace isPOD with BitwiseCopyable where possible
 
 +++
-status: new
+status: open
 priority: low
 kind: enhancement
+labels: effort:m
 created: 2026-05-18T04:26:36Z
+updated: 2026-08-09T19:32:10Z
 +++
 
 Swift 6's `BitwiseCopyable` protocol covers most of what our `isPOD`/`_isPOD` helper checks (trivially copyable, no refs, no ARC), but as a compile-time constraint rather than a runtime check.
@@ -300,12 +310,12 @@ Decide: convert what we can to generic `BitwiseCopyable` constraints, keep `isPO
 ## 11: Cache the system default device in _MTLCreateSystemDefaultDevice()
 
 +++
-status: new
+status: open
 priority: medium
 kind: enhancement
 labels: effort:s
 created: 2026-08-09T17:36:06Z
-updated: 2026-08-09T17:36:17Z
+updated: 2026-08-09T19:32:10Z
 +++
 
 _MTLCreateSystemDefaultDevice() calls MTLCreateSystemDefaultDevice() afresh on every invocation. Consumers treat it as a cheap accessor and call it ad hoc all over the place — MetalSprocketsExamples alone has 57 call sites, and MetalSupport itself calls it repeatedly (MTKMesh+Extensions, MTLCommandBufferDescriptor+Extensions).
