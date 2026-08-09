@@ -133,4 +133,23 @@ struct DrawHelpersAndLabeledTests {
         let texture = try device._makeTexture(descriptor: desc).labeled("myTexture")
         #expect(texture.label == "myTexture")
     }
+
+    @Test func bufferLabeled() throws {
+        let buffer = try device.makeBuffer(unsafeBytesOf: [Float](repeating: 0, count: 4)).labeled("myBuffer")
+        #expect(buffer.label == "myBuffer")
+    }
+
+    @Test func blitCommandEncoderLabeled() throws {
+        let cb = try queue._makeCommandBuffer()
+        let encoder = try cb._makeBlitCommandEncoder().labeled("myBlitEncoder")
+        #expect(encoder.label == "myBlitEncoder")
+        encoder.endEncoding()
+    }
+
+    @Test func computeCommandEncoderLabeled() throws {
+        let cb = try queue._makeCommandBuffer()
+        let encoder = try cb._makeComputeCommandEncoder().labeled("myComputeEncoder")
+        #expect(encoder.label == "myComputeEncoder")
+        encoder.endEncoding()
+    }
 }

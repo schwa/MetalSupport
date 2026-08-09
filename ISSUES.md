@@ -51,12 +51,13 @@ Three separate exhaustive switch statements map MTLVertexFormat to byte sizes: M
 ## 4: Extract Labeled protocol to replace copy-pasted labeled(_:) methods
 
 +++
-status: open
+status: closed
 priority: low
 kind: enhancement
 labels: architecture, code-duplication, effort:s
 created: 2026-04-14T21:13:38Z
-updated: 2026-08-09T19:32:09Z
+updated: 2026-08-09T19:37:41Z
+closed: 2026-08-09T19:37:41Z
 +++
 
 Labeled.swift has five identical labeled(_:) methods copy-pasted across MTLCommandQueue, MTLCommandBuffer, MTLRenderCommandEncoder, MTLTexture, and MTLBuffer. These could be a single protocol extension on anything with a settable label property.
