@@ -37,6 +37,26 @@ struct VertexFormatSizeTests {
         #expect(MTLVertexFormat.float2.size(packed: true) == 8)
         #expect(MTLVertexFormat.float2.size(packed: false) == 8)
     }
+
+    @Test func packedSizeMatchesSize() {
+        for format in [MTLVertexFormat.uchar4, .short2, .half4, .int3, .uint, .char3Normalized] {
+            #expect(format.size(packed: true) == format.size)
+        }
+    }
+
+    @Test func threeComponentFormatsArePaddedWhenAligned() {
+        #expect(MTLVertexFormat.uchar3.alignedSize == 4)
+        #expect(MTLVertexFormat.short3.alignedSize == 8)
+        #expect(MTLVertexFormat.half3.alignedSize == 8)
+        #expect(MTLVertexFormat.int3.alignedSize == 16)
+        #expect(MTLVertexFormat.uint3.alignedSize == 16)
+    }
+
+    @Test func nonThreeComponentFormatsAreUnpadded() {
+        for format in [MTLVertexFormat.float, .float2, .float4, .uchar2, .short4, .half] {
+            #expect(format.alignedSize == format.size)
+        }
+    }
 }
 
 // MARK: - MTLVertexFormat.init(MTLDataType)
@@ -49,6 +69,16 @@ struct VertexFormatFromDataTypeTests {
 
     @Test func float2() {
         #expect(MTLVertexFormat(MTLDataType.float2) == .float2)
+    }
+
+    @Test func nonFloatDataTypes() {
+        #expect(MTLVertexFormat(MTLDataType.half2) == .half2)
+        #expect(MTLVertexFormat(MTLDataType.int4) == .int4)
+        #expect(MTLVertexFormat(MTLDataType.uint) == .uint)
+        #expect(MTLVertexFormat(MTLDataType.short3) == .short3)
+        #expect(MTLVertexFormat(MTLDataType.ushort4) == .ushort4)
+        #expect(MTLVertexFormat(MTLDataType.char2) == .char2)
+        #expect(MTLVertexFormat(MTLDataType.uchar4) == .uchar4)
     }
 }
 

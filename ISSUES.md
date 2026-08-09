@@ -35,12 +35,13 @@ The reflection-based MTLVertexDescriptor.init(reflection:) uses withMemoryReboun
 ## 3: Consolidate vertex format size tables
 
 +++
-status: open
+status: closed
 priority: medium
 kind: enhancement
 labels: architecture, vertex-descriptor, effort:m
 created: 2026-04-14T21:13:27Z
-updated: 2026-08-09T19:32:09Z
+updated: 2026-08-09T19:36:50Z
+closed: 2026-08-09T19:36:50Z
 +++
 
 Three separate exhaustive switch statements map MTLVertexFormat to byte sizes: MTLVertexFormat.size in VertexDescriptor.swift, MTLVertexFormat.size(packed:) in MTLVertexFormat+Extensions.swift, and inferredVertexDescriptor() in MTLFunction+Extensions.swift. The reflection-based MTLVertexDescriptor.init(reflection:) duplicates the same type-to-format+size mapping again. Unify into a single source of truth.

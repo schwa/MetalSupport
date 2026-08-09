@@ -3,19 +3,122 @@ import ModelIO
 import simd
 
 public extension MTLVertexFormat {
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     /// Creates a vertex format from the corresponding `MTLDataType`.
-    ///
-    /// Only `.float2` and `.float3` are currently supported.
     init(_ dataType: MTLDataType) {
         switch dataType {
-        case .float3:
-            self = .float3
+        case .float:
+            self = .float
 
         case .float2:
             self = .float2
 
+        case .float3:
+            self = .float3
+
+        case .float4:
+            self = .float4
+
+        case .half:
+            self = .half
+
+        case .half2:
+            self = .half2
+
+        case .half3:
+            self = .half3
+
+        case .half4:
+            self = .half4
+
+        case .int:
+            self = .int
+
+        case .int2:
+            self = .int2
+
+        case .int3:
+            self = .int3
+
+        case .int4:
+            self = .int4
+
+        case .uint:
+            self = .uint
+
+        case .uint2:
+            self = .uint2
+
+        case .uint3:
+            self = .uint3
+
+        case .uint4:
+            self = .uint4
+
+        case .short:
+            self = .short
+
+        case .short2:
+            self = .short2
+
+        case .short3:
+            self = .short3
+
+        case .short4:
+            self = .short4
+
+        case .ushort:
+            self = .ushort
+
+        case .ushort2:
+            self = .ushort2
+
+        case .ushort3:
+            self = .ushort3
+
+        case .ushort4:
+            self = .ushort4
+
+        case .char:
+            self = .char
+
+        case .char2:
+            self = .char2
+
+        case .char3:
+            self = .char3
+
+        case .char4:
+            self = .char4
+
+        case .uchar:
+            self = .uchar
+
+        case .uchar2:
+            self = .uchar2
+
+        case .uchar3:
+            self = .uchar3
+
+        case .uchar4:
+            self = .uchar4
+
         default:
-            fatalError("Unimplemented")
+            fatalError("Unimplemented MTLDataType(\(dataType.rawValue))")
+        }
+    }
+
+    /// The byte size of this format when laid out with SIMD alignment.
+    ///
+    /// Identical to ``size`` except for three-component formats, which SIMD pads out to four components.
+    var alignedSize: Int {
+        switch self {
+        // Three-component formats are the only ones SIMD pads.
+        case .char3, .char3Normalized, .uchar3, .uchar3Normalized, .short3, .short3Normalized, .ushort3, .ushort3Normalized, .half3, .float3, .int3, .uint3:
+            return size / 3 * 4
+
+        default:
+            return size
         }
     }
 
@@ -24,16 +127,7 @@ public extension MTLVertexFormat {
     /// - Parameter packed: When `true`, uses tightly packed size (e.g. 12 bytes for `float3`
     ///   instead of the SIMD-aligned 16 bytes).
     func size(packed: Bool) -> Int {
-        switch self {
-        case .float3:
-            return packed ? MemoryLayout<Float>.stride * 3 : MemoryLayout<SIMD3<Float>>.size
-
-        case .float2:
-            return MemoryLayout<SIMD2<Float>>.size
-
-        default:
-            fatalError("Unimplemented")
-        }
+        packed ? size : alignedSize
     }
 
     // swiftlint:disable:next function_body_length cyclomatic_complexity

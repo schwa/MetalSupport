@@ -319,6 +319,8 @@ extension VertexDescriptor: Codable {
 
 public extension MTLVertexFormat {
     /// The byte size of a single element of this vertex format (packed, no SIMD alignment padding).
+    ///
+    /// This is the canonical format-size table; everything else in MetalSupport derives its sizes from it.
     var size: Int {
         switch self {
         case .invalid:
