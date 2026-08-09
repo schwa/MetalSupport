@@ -150,16 +150,20 @@ public extension MTLTexture {
     }
 
     private func validateFillPreconditions(valueStride: Int) throws {
-        guard let pixelSize = pixelFormat.size else {
-            throw MetalSupportError.unsupportedPixelFormat("Pixel format \(pixelFormat) has no fixed size (compressed or variable-width formats are not supported by fill()).")
-        }
-        // Depth/stencil formats: blit-from-buffer has extra rules; out of scope for v1.
         switch pixelFormat {
-        case .depth16Unorm, .depth32Float, .stencil8, .depth24Unorm_stencil8, .depth32Float_stencil8, .x32_stencil8, .x24_stencil8:
-            throw MetalSupportError.unsupportedPixelFormat("Depth/stencil pixel format \(pixelFormat) is not supported by fill().")
+        case .depth24Unorm_stencil8, .depth32Float_stencil8:
+            // Combined formats interleave two planes with implementation-defined padding, so a
+            // single tiled value cannot describe their contents.
+            throw MetalSupportError.unsupportedPixelFormat("Combined depth/stencil pixel format \(pixelFormat) is not supported by fill(); fill the depth and stencil planes via a render pass instead.")
+
+        case .x32_stencil8, .x24_stencil8:
+            throw MetalSupportError.unsupportedPixelFormat("Pixel format \(pixelFormat) is a stencil-only view of a combined depth/stencil texture and cannot be filled directly.")
 
         default:
             break
+        }
+        guard let pixelSize = pixelFormat.size else {
+            throw MetalSupportError.unsupportedPixelFormat("Pixel format \(pixelFormat) has no fixed size (compressed or variable-width formats are not supported by fill()).")
         }
         guard valueStride == pixelSize else {
             throw MetalSupportError.invalidPixelStride("Value stride (\(valueStride)) does not match texture's bytes per pixel (\(pixelSize)) for pixel format \(pixelFormat).")

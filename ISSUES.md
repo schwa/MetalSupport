@@ -198,12 +198,13 @@ Out of scope for v1: `.memoryless`, cube/array slices, non-`waitUntilCompleted` 
 ## 8: Support depth/stencil pixel formats in MTLTexture.fill()
 
 +++
-status: open
+status: closed
 priority: low
 kind: enhancement
 labels: effort:l
 created: 2026-04-20T18:34:15Z
-updated: 2026-08-09T19:32:09Z
+updated: 2026-08-09T19:44:31Z
+closed: 2026-08-09T19:44:31Z
 +++
 
 Follow-up to #7. The initial `MTLTexture.fill()` implementation throws `unsupportedPixelFormat` for depth/stencil formats:
@@ -225,6 +226,8 @@ These were deferred because blit-from-buffer into depth/stencil textures has ext
 - Handle the `x*_stencil8` stencil-only views.
 - Add tests for each supported format.
 - Update error messaging / documentation for any formats that remain unsupported.
+
+- `2026-08-09T19:44:31Z`: Implemented fill() for .depth16Unorm, .depth32Float and .stencil8 (shared via replace(), private via the existing blit path) with round-trip tests. The combined formats (.depth24Unorm_stencil8, .depth32Float_stencil8) and the stencil-only views (.x24_stencil8, .x32_stencil8) stay unsupported: their planes are packed separately so a single tiled value can't describe the contents. Both now throw a specific error explaining why. If combined-format fills are needed, that wants a render-pass-based API (clearDepth/clearStencil) rather than a generic fill(with:) — file separately.
 
 ---
 

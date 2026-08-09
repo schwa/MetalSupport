@@ -139,4 +139,70 @@ struct TextureFillTests {
         }
         #expect(mipPixels.allSatisfy { $0 == color })
     }
+
+    // MARK: - Depth / stencil
+
+    private func makeDepthTexture(pixelFormat: MTLPixelFormat, storageMode: MTLStorageMode = .shared) throws -> MTLTexture {
+        let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: pixelFormat, width: 4, height: 4, mipmapped: false)
+        desc.storageMode = storageMode
+        desc.usage = [.shaderRead, .renderTarget]
+        return try device._makeTexture(descriptor: desc)
+    }
+
+    private func readTypedPixels<T: BitwiseCopyable & ExpressibleByIntegerLiteral>(_ texture: MTLTexture, as _: T.Type) -> [T] {
+        var pixels = [T](repeating: 0, count: texture.width * texture.height)
+        pixels.withUnsafeMutableBytes { buffer in
+            guard let baseAddress = buffer.baseAddress else {
+                return
+            }
+            texture.getBytes(baseAddress, bytesPerRow: texture.width * MemoryLayout<T>.stride, from: texture.region, mipmapLevel: 0)
+        }
+        return pixels
+    }
+
+    @Test func fillSharedDepth32FloatTexture() throws {
+        let texture = try makeDepthTexture(pixelFormat: .depth32Float)
+        try texture.fill(with: Float(0.25))
+        #expect(readTypedPixels(texture, as: Float.self).allSatisfy { $0 == 0.25 })
+    }
+
+    @Test func fillSharedDepth16UnormTexture() throws {
+        let texture = try makeDepthTexture(pixelFormat: .depth16Unorm)
+        try texture.fill(with: UInt16(0x1234))
+        #expect(readTypedPixels(texture, as: UInt16.self).allSatisfy { $0 == 0x1234 })
+    }
+
+    @Test func fillSharedStencil8Texture() throws {
+        let texture = try makeDepthTexture(pixelFormat: .stencil8)
+        try texture.fill(with: UInt8(0x7F))
+        #expect(readTypedPixels(texture, as: UInt8.self).allSatisfy { $0 == 0x7F })
+    }
+
+    @Test func fillPrivateDepth32FloatTextureWithQueue() throws {
+        let texture = try makeDepthTexture(pixelFormat: .depth32Float, storageMode: .private)
+        try texture.fill(with: Float(0.5), using: queue)
+
+        let staging = try makeDepthTexture(pixelFormat: .depth32Float)
+        let cb = try queue._makeCommandBuffer()
+        let encoder = try cb._makeBlitCommandEncoder()
+        encoder.copy(from: texture, to: staging)
+        encoder.endEncoding()
+        cb.commit()
+        cb.waitUntilCompleted()
+        #expect(readTypedPixels(staging, as: Float.self).allSatisfy { $0 == 0.5 })
+    }
+
+    @Test func fillDepthStrideMismatchThrows() throws {
+        let texture = try makeDepthTexture(pixelFormat: .depth32Float)
+        #expect(throws: MetalSupportError.self) {
+            try texture.fill(with: UInt16(1))
+        }
+    }
+
+    @Test func fillCombinedDepthStencilThrows() throws {
+        let texture = try makeDepthTexture(pixelFormat: .depth32Float_stencil8)
+        #expect(throws: MetalSupportError.self) {
+            try texture.fill(with: UInt64(0))
+        }
+    }
 }
