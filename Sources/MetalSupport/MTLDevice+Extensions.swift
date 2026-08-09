@@ -46,26 +46,23 @@ public extension MTLDevice {
     }
 
     /// Creates a buffer from a POD value's raw bytes.
-    func makeBuffer<T>(unsafeBytesOf value: T, options: MTLResourceOptions = []) throws -> MTLBuffer {
-        precondition(isPOD(value))
-        return try withUnsafeBytes(of: value) { buffer in
+    func makeBuffer<T: BitwiseCopyable>(unsafeBytesOf value: T, options: MTLResourceOptions = []) throws -> MTLBuffer {
+        try withUnsafeBytes(of: value) { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
             return try makeBuffer(bytes: baseAddress, length: buffer.count, options: options).orThrow(.resourceCreationFailure("Failed to create buffer from bytes"))
         }
     }
 
     /// Creates a buffer from an array of POD values' raw bytes.
-    func makeBuffer<T>(unsafeBytesOf value: [T], options: MTLResourceOptions = []) throws -> MTLBuffer {
-        precondition(isPODArray(value))
-        return try value.withUnsafeBytes { buffer in
+    func makeBuffer<T: BitwiseCopyable>(unsafeBytesOf value: [T], options: MTLResourceOptions = []) throws -> MTLBuffer {
+        try value.withUnsafeBytes { buffer in
             let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
             return try makeBuffer(bytes: baseAddress, length: buffer.count, options: options).orThrow(.resourceCreationFailure("Failed to create buffer from array bytes"))
         }
     }
 
     /// Creates a buffer from a collection with contiguous storage.
-    func makeBuffer<C>(collection: C, options: MTLResourceOptions) throws -> MTLBuffer where C: Collection {
-        assert(isPOD(C.Element.self))
+    func makeBuffer<C>(collection: C, options: MTLResourceOptions) throws -> MTLBuffer where C: Collection, C.Element: BitwiseCopyable {
         let buffer = try collection.withContiguousStorageIfAvailable { buffer in
             let raw = UnsafeRawBufferPointer(buffer)
             let baseAddress = raw.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
@@ -81,8 +78,7 @@ public extension MTLDevice {
     }
 
     /// Creates a texture filled with a repeating value.
-    func makeTexture<T>(descriptor: MTLTextureDescriptor, repeating value: T) throws -> MTLTexture {
-        assert(isPOD(value))
+    func makeTexture<T: BitwiseCopyable>(descriptor: MTLTextureDescriptor, repeating value: T) throws -> MTLTexture {
         let numPixels = descriptor.width * descriptor.height
         let values = [T](repeating: value, count: numPixels)
         let texture = try _makeTexture(descriptor: descriptor)

@@ -38,10 +38,8 @@ public extension MTLVertexDescriptor {
     /// Creates a vertex descriptor by reflecting over the stored properties of a POD struct.
     ///
     /// Each field becomes a vertex attribute in buffer 0. The struct must be plain-old-data.
-    convenience init<T>(reflection _: T.Type) {
+    convenience init<T: BitwiseCopyable>(reflection _: T.Type) {
         self.init()
-
-        assert(_isPOD(T.self))
 
         let raw = [UInt8](repeating: 0, count: MemoryLayout<T>.size)
         let mirror = raw.withUnsafeBufferPointer { buf in
