@@ -58,10 +58,26 @@ struct DebugGroupTests {
     @Test func blitCommandEncoderWithDebugGroup() throws {
         let cb = try queue._makeCommandBuffer()
         let encoder = try cb._makeBlitCommandEncoder()
-        let result = encoder.withDebugGroup(label: "blit") { 5 }
+        let result = encoder.withDebugGroup("blit") { 5 }
         #expect(result == 5)
-        let disabled = encoder.withDebugGroup(enabled: false, label: "nope") { 10 }
+        let disabled = encoder.withDebugGroup(enabled: false, "nope") { 10 }
         #expect(disabled == 10)
+        encoder.endEncoding()
+    }
+
+    @Test func parallelRenderCommandEncoderWithDebugGroup() throws {
+        let cb = try queue._makeCommandBuffer()
+        let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 4, height: 4, mipmapped: false)
+        desc.usage = [.renderTarget]
+        desc.storageMode = .private
+        let texture = try device._makeTexture(descriptor: desc)
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = texture
+        pass.colorAttachments[0].loadAction = .clear
+        pass.colorAttachments[0].storeAction = .store
+        let encoder = try #require(cb.makeParallelRenderCommandEncoder(descriptor: pass))
+        let result = encoder.withDebugGroup("parallel") { 3 }
+        #expect(result == 3)
         encoder.endEncoding()
     }
 

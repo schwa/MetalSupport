@@ -43,22 +43,13 @@ public extension MTLCommandBuffer {
     }
 }
 
-public extension MTLRenderCommandEncoder {
+public extension MTLCommandEncoder {
     /// Pushes a debug group for the duration of `body`, then pops it.
-    func withDebugGroup<R>(enabled: Bool = true, _ label: String, _ body: () throws -> R) rethrows -> R {
-        guard enabled else {
-            return try body()
-        }
-        pushDebugGroup(label)
-        defer {
-            popDebugGroup()
-        }
-        return try body()
-    }
-}
-
-public extension MTLComputeCommandEncoder {
-    /// Pushes a debug group for the duration of `body`, then pops it.
+    ///
+    /// - Parameters:
+    ///   - enabled: When `false`, the body executes without a debug group.
+    ///   - label: The debug group label.
+    ///   - body: The work to execute inside the debug group.
     func withDebugGroup<R>(enabled: Bool = true, _ label: String, _ body: () throws -> R) rethrows -> R {
         guard enabled else {
             return try body()
@@ -72,15 +63,8 @@ public extension MTLComputeCommandEncoder {
 }
 
 public extension MTLBlitCommandEncoder {
-    /// Pushes a debug group for the duration of `body`, then pops it.
+    @available(*, deprecated, message: "Use withDebugGroup(enabled:_:_:) — the label is now unlabelled, matching the other encoders.")
     func withDebugGroup<R>(enabled: Bool = true, label: String, _ body: () throws -> R) rethrows -> R {
-        guard enabled else {
-            return try body()
-        }
-        pushDebugGroup(label)
-        defer {
-            popDebugGroup()
-        }
-        return try body()
+        try withDebugGroup(enabled: enabled, label, body)
     }
 }

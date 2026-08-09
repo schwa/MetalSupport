@@ -67,12 +67,13 @@ Labeled.swift has five identical labeled(_:) methods copy-pasted across MTLComma
 ## 5: Deduplicate withDebugGroup methods in DebugGroup.swift
 
 +++
-status: open
+status: closed
 priority: low
 kind: enhancement
 labels: architecture, code-duplication, effort:s
 created: 2026-04-14T21:13:44Z
-updated: 2026-08-09T19:32:09Z
+updated: 2026-08-09T19:38:26Z
+closed: 2026-08-09T19:38:26Z
 +++
 
 Four identical withDebugGroup methods on MTLCommandBuffer, MTLRenderCommandEncoder, MTLComputeCommandEncoder, and MTLBlitCommandEncoder. Same pattern, same body, same signature. Could be unified via a protocol.
