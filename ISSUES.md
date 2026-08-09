@@ -296,3 +296,24 @@ Caveats:
 Decide: convert what we can to generic `BitwiseCopyable` constraints, keep `isPOD` only where runtime erasure forces it.
 
 ---
+
+## 11: Cache the system default device in _MTLCreateSystemDefaultDevice()
+
++++
+status: new
+priority: medium
+kind: enhancement
+labels: effort:s
+created: 2026-08-09T17:36:06Z
+updated: 2026-08-09T17:36:17Z
++++
+
+_MTLCreateSystemDefaultDevice() calls MTLCreateSystemDefaultDevice() afresh on every invocation. Consumers treat it as a cheap accessor and call it ad hoc all over the place — MetalSprocketsExamples alone has 57 call sites, and MetalSupport itself calls it repeatedly (MTKMesh+Extensions, MTLCommandBufferDescriptor+Extensions).
+
+Caching one device in a static would centralize device access for every consumer at once, instead of each downstream project inventing its own shared-device singleton.
+
+Worth confirming: is returning one process-wide device acceptable for all supported platforms, or does anything rely on getting a fresh device per call?
+
+Reported downstream: MetalSprocketsExamples#357.
+
+---
