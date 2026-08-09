@@ -106,6 +106,12 @@ Investigate:
 
 See commit a9b7addd for the disable.
 
+- `2026-08-09T19:44:52Z`: Punting: can't reproduce or verify locally — MTLLogState creation succeeds on this machine, and the failure only appears on GitHub Actions runners, so any fix is unverifiable without a CI run.
+
+Investigation so far: addDefaultLogging() hardcodes bufferSize = 32 MB and creates the log state on the system default device. My hypothesis (unverified) is that the 32 MB residency-set allocation is what fails on the virtualized runner GPU, not MTLLogState as such.
+
+Concrete next step, needs a CI run to check: parameterise addDefaultLogging(bufferSize:device:), then push a branch that runs the currently-disabled test with a small bufferSize (e.g. 64 KB) on CI. If that passes, lower the default and re-enable the test; if it still fails, the residency set itself is unavailable on the runners and the test should stay disabled with a documented comment. Happy to prepare that branch if you want to push it.
+
 ---
 
 ## 7: Add MTLTexture.setTexture() API for memset-equivalent texture clearing
