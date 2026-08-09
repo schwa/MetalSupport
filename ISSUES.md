@@ -5,12 +5,13 @@
 ## 1: Deduplicate setUnsafeBytes boilerplate in UnsafeBytes.swift
 
 +++
-status: open
+status: closed
 priority: low
 kind: enhancement
 labels: architecture, code-duplication, effort:m
 created: 2026-04-14T21:13:14Z
-updated: 2026-08-09T19:32:09Z
+updated: 2026-08-09T19:39:20Z
+closed: 2026-08-09T19:39:20Z
 +++
 
 UnsafeBytes.swift contains 10 nearly-identical methods on MTLRenderCommandEncoder (vertex/fragment/object/mesh × value/array) plus 2 on MTLComputeCommandEncoder. Each repeats the same withUnsafeBytes → baseAddress → setXxxBytes pattern. Extract a single generic helper to reduce duplication and make the pattern testable.

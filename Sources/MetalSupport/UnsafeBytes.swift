@@ -1,5 +1,24 @@
 import Metal
 
+// MARK: - Raw byte helpers
+
+// Metal's setXxxBytes(_:length:index:) family all want a base address plus a byte count.
+// These two helpers hold that pattern so the encoder extensions below stay one-liners.
+
+private func withRawBytes<T, R>(of value: T, _ body: (UnsafeRawPointer, Int) throws -> R) rethrows -> R {
+    try withUnsafeBytes(of: value) { buffer in
+        let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
+        return try body(baseAddress, MemoryLayout<T>.stride)
+    }
+}
+
+private func withRawBytes<T, R>(of values: [T], _ body: (UnsafeRawPointer, Int) throws -> R) rethrows -> R {
+    try values.withUnsafeBytes { buffer in
+        let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
+        return try body(baseAddress, MemoryLayout<T>.stride * values.count)
+    }
+}
+
 // MARK: - Argument encoder
 
 public extension MTLArgumentEncoder {
@@ -18,9 +37,8 @@ public extension MTLRenderCommandEncoder {
     /// Sets vertex bytes from an array's raw storage.
     func setVertexUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
-        value.withUnsafeBytes { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setVertexBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setVertexBytes(pointer, length: length, index: index)
         }
     }
 
@@ -28,18 +46,16 @@ public extension MTLRenderCommandEncoder {
     func setVertexUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
-        withUnsafeBytes(of: value) { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setVertexBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setVertexBytes(pointer, length: length, index: index)
         }
     }
 
     /// Sets fragment bytes from an array's raw storage.
     func setFragmentUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
-        value.withUnsafeBytes { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setFragmentBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setFragmentBytes(pointer, length: length, index: index)
         }
     }
 
@@ -47,18 +63,16 @@ public extension MTLRenderCommandEncoder {
     func setFragmentUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
-        withUnsafeBytes(of: value) { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setFragmentBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setFragmentBytes(pointer, length: length, index: index)
         }
     }
 
     /// Sets object bytes from an array's raw storage.
     func setObjectUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
-        value.withUnsafeBytes { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setObjectBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setObjectBytes(pointer, length: length, index: index)
         }
     }
 
@@ -66,18 +80,16 @@ public extension MTLRenderCommandEncoder {
     func setObjectUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
-        withUnsafeBytes(of: value) { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setObjectBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setObjectBytes(pointer, length: length, index: index)
         }
     }
 
     /// Sets mesh bytes from an array's raw storage.
     func setMeshUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
-        value.withUnsafeBytes { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setMeshBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setMeshBytes(pointer, length: length, index: index)
         }
     }
 
@@ -85,9 +97,8 @@ public extension MTLRenderCommandEncoder {
     func setMeshUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
-        withUnsafeBytes(of: value) { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setMeshBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setMeshBytes(pointer, length: length, index: index)
         }
     }
 }
@@ -160,9 +171,8 @@ public extension MTLComputeCommandEncoder {
     /// Sets compute bytes from an array's raw storage.
     func setUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
-        value.withUnsafeBytes { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setBytes(baseAddress, length: MemoryLayout<T>.stride * value.count, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setBytes(pointer, length: length, index: index)
         }
     }
 
@@ -170,9 +180,8 @@ public extension MTLComputeCommandEncoder {
     func setUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
         assert(isPOD(value))
-        withUnsafeBytes(of: value) { buffer in
-            let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
-            setBytes(baseAddress, length: MemoryLayout<T>.stride, index: index)
+        withRawBytes(of: value) { pointer, length in
+            setBytes(pointer, length: length, index: index)
         }
     }
 }
