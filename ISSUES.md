@@ -106,7 +106,7 @@ Investigate:
 
 See commit a9b7addd for the disable.
 
-- `2026-08-09T19:44:52Z`: Punting: can't reproduce or verify locally — MTLLogState creation succeeds on this machine, and the failure only appears on GitHub Actions runners, so any fix is unverifiable without a CI run.
+\- `2026-08-09T19:44:52Z`: Punting: can't reproduce or verify locally — MTLLogState creation succeeds on this machine, and the failure only appears on GitHub Actions runners, so any fix is unverifiable without a CI run.
 
 Investigation so far: addDefaultLogging() hardcodes bufferSize = 32 MB and creates the log state on the system default device. My hypothesis (unverified) is that the 32 MB residency-set allocation is what fails on the virtualized runner GPU, not MTLLogState as such.
 
@@ -317,6 +317,8 @@ Caveats:
 - If any call site takes erased `Any` values, a runtime check still needs to stay.
 
 Decide: convert what we can to generic `BitwiseCopyable` constraints, keep `isPOD` only where runtime erasure forces it.
+
+- `2026-08-24T18:42:23Z`: Deferred: BitwiseCopyable constraints broke source compatibility for downstream generic wrappers. Reverted; reconsider for the next major release.
 
 ---
 
