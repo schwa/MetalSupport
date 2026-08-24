@@ -56,7 +56,8 @@ public extension MTLTexture {
     ///     given mip level.
     ///   - mipmapLevel: The mip level to fill. Defaults to `0`.
     ///   - slice: The array slice / cube face to fill. Defaults to `0`.
-    func fill<T: BitwiseCopyable>(with value: T, region: MTLRegion? = nil, mipmapLevel: Int = 0, slice: Int = 0) throws {
+    func fill<T>(with value: T, region: MTLRegion? = nil, mipmapLevel: Int = 0, slice: Int = 0) throws {
+        precondition(isPOD(value))
         try validateFillPreconditions(valueStride: MemoryLayout<T>.stride)
         guard storageMode.isCPUAccessible else {
             throw MetalSupportError.unsupportedStorageMode("fill(with:) without an encoder/queue requires .shared or .managed storage; use the encoder or queue overload for .private textures.")
@@ -76,7 +77,8 @@ public extension MTLTexture {
     /// directly and does not touch the encoder. For `.private` textures it
     /// allocates a shared staging buffer sized to the region and issues a
     /// single `copy(from:sourceBuffer:...)` on the encoder.
-    func fill<T: BitwiseCopyable>(with value: T, region: MTLRegion? = nil, mipmapLevel: Int = 0, slice: Int = 0, using encoder: MTLBlitCommandEncoder) throws {
+    func fill<T>(with value: T, region: MTLRegion? = nil, mipmapLevel: Int = 0, slice: Int = 0, using encoder: MTLBlitCommandEncoder) throws {
+        precondition(isPOD(value))
         try validateFillPreconditions(valueStride: MemoryLayout<T>.stride)
         let region = region ?? mipRegion(level: mipmapLevel)
 
@@ -115,7 +117,8 @@ public extension MTLTexture {
     ///
     /// The command buffer is committed and waited on before this method
     /// returns, so the texture is guaranteed filled on return.
-    func fill<T: BitwiseCopyable>(with value: T, region: MTLRegion? = nil, mipmapLevel: Int = 0, slice: Int = 0, using queue: MTLCommandQueue) throws {
+    func fill<T>(with value: T, region: MTLRegion? = nil, mipmapLevel: Int = 0, slice: Int = 0, using queue: MTLCommandQueue) throws {
+        precondition(isPOD(value))
         try validateFillPreconditions(valueStride: MemoryLayout<T>.stride)
         let region = region ?? mipRegion(level: mipmapLevel)
 
@@ -205,7 +208,7 @@ private extension MTLStorageMode {
 
 private extension MTLTexture {
     /// Builds the tiled byte buffer for a fill and returns the row/image strides.
-    func makeFillBytes<T: BitwiseCopyable>(value: T, region: MTLRegion) -> FillBytes<T> {
+    func makeFillBytes<T>(value: T, region: MTLRegion) -> FillBytes<T> {
         let pixelCount = region.size.width * region.size.height * region.size.depth
         let bytes = [T](repeating: value, count: pixelCount)
         let stride = MemoryLayout<T>.stride

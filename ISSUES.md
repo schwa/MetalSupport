@@ -293,13 +293,12 @@ Surfaced by: MetalSprockets#302 (now closed, redirected here).
 ## 10: Replace isPOD with BitwiseCopyable where possible
 
 +++
-status: closed
+status: open
 priority: low
 kind: enhancement
 labels: effort:m
 created: 2026-05-18T04:26:36Z
-updated: 2026-08-09T19:40:45Z
-closed: 2026-08-09T19:40:45Z
+updated: 2026-08-09T19:32:10Z
 +++
 
 Swift 6's `BitwiseCopyable` protocol covers most of what our `isPOD`/`_isPOD` helper checks (trivially copyable, no refs, no ARC), but as a compile-time constraint rather than a runtime check.

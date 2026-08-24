@@ -5,14 +5,14 @@ import Metal
 // Metal's setXxxBytes(_:length:index:) family all want a base address plus a byte count.
 // These two helpers hold that pattern so the encoder extensions below stay one-liners.
 
-private func withRawBytes<T: BitwiseCopyable, R>(of value: T, _ body: (UnsafeRawPointer, Int) throws -> R) rethrows -> R {
+private func withRawBytes<T, R>(of value: T, _ body: (UnsafeRawPointer, Int) throws -> R) rethrows -> R {
     try withUnsafeBytes(of: value) { buffer in
         let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
         return try body(baseAddress, MemoryLayout<T>.stride)
     }
 }
 
-private func withRawBytes<T: BitwiseCopyable, R>(of values: [T], _ body: (UnsafeRawPointer, Int) throws -> R) rethrows -> R {
+private func withRawBytes<T, R>(of values: [T], _ body: (UnsafeRawPointer, Int) throws -> R) rethrows -> R {
     try values.withUnsafeBytes { buffer in
         let baseAddress = buffer.baseAddress.orFatalError(.resourceCreationFailure("No base address."))
         return try body(baseAddress, MemoryLayout<T>.stride * values.count)
@@ -23,7 +23,7 @@ private func withRawBytes<T: BitwiseCopyable, R>(of values: [T], _ body: (Unsafe
 
 public extension MTLArgumentEncoder {
     /// Copies a value's raw bytes into the argument buffer at the given index.
-    func setBytes<T: BitwiseCopyable>(of value: T, index: Int) {
+    func setBytes<T>(of value: T, index: Int) {
         withUnsafeBytes(of: value) { buffer in
             let dest = UnsafeMutableRawBufferPointer(start: constantData(at: index), count: encodedLength)
             buffer.copyBytes(to: dest)
@@ -35,7 +35,7 @@ public extension MTLArgumentEncoder {
 
 public extension MTLRenderCommandEncoder {
     /// Sets vertex bytes from an array's raw storage.
-    func setVertexUnsafeBytes<T: BitwiseCopyable>(of value: [T], index: Int) {
+    func setVertexUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         withRawBytes(of: value) { pointer, length in
             setVertexBytes(pointer, length: length, index: index)
@@ -43,15 +43,16 @@ public extension MTLRenderCommandEncoder {
     }
 
     /// Sets vertex bytes from a value's raw storage.
-    func setVertexUnsafeBytes<T: BitwiseCopyable>(of value: T, index: Int) {
+    func setVertexUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
+        assert(isPOD(value))
         withRawBytes(of: value) { pointer, length in
             setVertexBytes(pointer, length: length, index: index)
         }
     }
 
     /// Sets fragment bytes from an array's raw storage.
-    func setFragmentUnsafeBytes<T: BitwiseCopyable>(of value: [T], index: Int) {
+    func setFragmentUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         withRawBytes(of: value) { pointer, length in
             setFragmentBytes(pointer, length: length, index: index)
@@ -59,15 +60,16 @@ public extension MTLRenderCommandEncoder {
     }
 
     /// Sets fragment bytes from a value's raw storage.
-    func setFragmentUnsafeBytes<T: BitwiseCopyable>(of value: T, index: Int) {
+    func setFragmentUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
+        assert(isPOD(value))
         withRawBytes(of: value) { pointer, length in
             setFragmentBytes(pointer, length: length, index: index)
         }
     }
 
     /// Sets object bytes from an array's raw storage.
-    func setObjectUnsafeBytes<T: BitwiseCopyable>(of value: [T], index: Int) {
+    func setObjectUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         withRawBytes(of: value) { pointer, length in
             setObjectBytes(pointer, length: length, index: index)
@@ -75,15 +77,16 @@ public extension MTLRenderCommandEncoder {
     }
 
     /// Sets object bytes from a value's raw storage.
-    func setObjectUnsafeBytes<T: BitwiseCopyable>(of value: T, index: Int) {
+    func setObjectUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
+        assert(isPOD(value))
         withRawBytes(of: value) { pointer, length in
             setObjectBytes(pointer, length: length, index: index)
         }
     }
 
     /// Sets mesh bytes from an array's raw storage.
-    func setMeshUnsafeBytes<T: BitwiseCopyable>(of value: [T], index: Int) {
+    func setMeshUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         withRawBytes(of: value) { pointer, length in
             setMeshBytes(pointer, length: length, index: index)
@@ -91,8 +94,9 @@ public extension MTLRenderCommandEncoder {
     }
 
     /// Sets mesh bytes from a value's raw storage.
-    func setMeshUnsafeBytes<T: BitwiseCopyable>(of value: T, index: Int) {
+    func setMeshUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
+        assert(isPOD(value))
         withRawBytes(of: value) { pointer, length in
             setMeshBytes(pointer, length: length, index: index)
         }
@@ -103,7 +107,7 @@ public extension MTLRenderCommandEncoder {
 
 public extension MTLRenderCommandEncoder {
     /// Sets bytes for the specified function type from an array's raw storage.
-    func setUnsafeBytes<T: BitwiseCopyable>(of value: [T], index: Int, functionType: MTLFunctionType) {
+    func setUnsafeBytes<T>(of value: [T], index: Int, functionType: MTLFunctionType) {
         precondition(index >= 0)
         switch functionType {
         case .vertex: setVertexUnsafeBytes(of: value, index: index)
@@ -115,8 +119,9 @@ public extension MTLRenderCommandEncoder {
     }
 
     /// Sets bytes for the specified function type from a value's raw storage.
-    func setUnsafeBytes<T: BitwiseCopyable>(of value: T, index: Int, functionType: MTLFunctionType) {
+    func setUnsafeBytes<T>(of value: T, index: Int, functionType: MTLFunctionType) {
         precondition(index >= 0)
+        assert(isPOD(value))
         switch functionType {
         case .vertex: setVertexUnsafeBytes(of: value, index: index)
         case .fragment: setFragmentUnsafeBytes(of: value, index: index)
@@ -164,7 +169,7 @@ public extension MTLRenderCommandEncoder {
 
 public extension MTLComputeCommandEncoder {
     /// Sets compute bytes from an array's raw storage.
-    func setUnsafeBytes<T: BitwiseCopyable>(of value: [T], index: Int) {
+    func setUnsafeBytes<T>(of value: [T], index: Int) {
         precondition(index >= 0)
         withRawBytes(of: value) { pointer, length in
             setBytes(pointer, length: length, index: index)
@@ -172,8 +177,9 @@ public extension MTLComputeCommandEncoder {
     }
 
     /// Sets compute bytes from a value's raw storage.
-    func setUnsafeBytes<T: BitwiseCopyable>(of value: T, index: Int) {
+    func setUnsafeBytes<T>(of value: T, index: Int) {
         precondition(index >= 0)
+        assert(isPOD(value))
         withRawBytes(of: value) { pointer, length in
             setBytes(pointer, length: length, index: index)
         }
