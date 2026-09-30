@@ -343,3 +343,24 @@ Worth confirming: is returning one process-wide device acceptable for all suppor
 Reported downstream: MetalSprocketsExamples#357.
 
 ---
+
+## 12: MTKMesh sphere/box/plane helpers have inconsistent, surprising conventions
+
++++
+status: new
+priority: medium
+kind: enhancement
+created: 2026-09-30T16:34:13Z
++++
+
+The MTKMesh convenience constructors in MTKMesh+Extensions.swift behave differently from what their parameters suggest:
+
+- `sphere(extent:)`: extent is a radius. `extent: [1.2, 1.2, 1.2]` gives vertices from -1.2 to 1.2.
+- `box(extent:)`: extent is the full size. `extent: [1, 2, 1]` gives vertices from -0.5 to 0.5 and -1 to 1.
+- `plane(width:height:)`: builds a plane in XY at z = 0 (facing +z), not a ground plane in XZ.
+
+All three come from Model I/O defaults and are not documented.
+
+Impact: in MetalSprocketsAddOnsExamples, three demos placed spheres at twice the intended size and used the plane as a floor without rotating it, so it became a wall through every object (MetalSprocketsAddOns #55).
+
+---
