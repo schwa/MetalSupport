@@ -364,3 +364,23 @@ All three come from Model I/O defaults and are not documented.
 Impact: in MetalSprocketsAddOnsExamples, three demos placed spheres at twice the intended size and used the plane as a floor without rotating it, so it became a wall through every object (MetalSprocketsAddOns #55).
 
 ---
+
+## 13: MetalSupport does not compile for the iOS Simulator
+
++++
+status: new
+priority: medium
+kind: bug
+labels: ios,simulator
+created: 2026-10-05T16:00:33Z
++++
+
+`MTLDevice+Capabilities.swift` references `MTLGPUFamily.metal4`, which the iOS Simulator SDK does not have:
+
+```
+MetalSupport/MTLDevice+Capabilities.swift:15:36: type 'MTLGPUFamily' has no member 'metal4'
+```
+
+macOS and iOS device builds succeed. Found via MetalSprocketsGLTF's GLTFViewer demo (Xcode 27.0, iOS 27.0 simulator).
+
+---
