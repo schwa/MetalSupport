@@ -371,7 +371,7 @@ Impact: in MetalSprocketsAddOnsExamples, three demos placed spheres at twice the
 status: new
 priority: medium
 kind: bug
-labels: ios,simulator
+labels: ios, simulator
 created: 2026-10-05T16:00:33Z
 +++
 
@@ -382,5 +382,20 @@ MetalSupport/MTLDevice+Capabilities.swift:15:36: type 'MTLGPUFamily' has no memb
 ```
 
 macOS and iOS device builds succeed. Found via MetalSprocketsGLTF's GLTFViewer demo (Xcode 27.0, iOS 27.0 simulator).
+
+---
+
+## 14: VertexDescriptor.Attribute.Semantic has no joints, weights or texcoord set index
+
++++
+status: new
+priority: medium
+kind: enhancement
+created: 2026-10-13T00:28:26Z
++++
+
+VertexDescriptor.Attribute.Semantic has position, normal, tangent, bitangent, texcoord, color, userDefined and unknown. It has no semantics for skinning joints or weights, and no way to tell texcoord 0 from texcoord 1 (or color sets apart). Skinned or multi-UV layouts (glTF JOINTS_n, WEIGHTS_n, TEXCOORD_1) must use userDefined plus a label, so code cannot find these attributes by semantic.
+
+Use case: SwiftMesh MetalMesh as the vertex container for MetalSprocketsGLTF / MetalSprocketsPBR (PBRSkinVertex, second UV set).
 
 ---
