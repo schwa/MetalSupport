@@ -24,7 +24,7 @@ struct VertexDescriptorDebugTests {
     @Test func attributeDebugDescription() {
         let a = VertexDescriptor.Attribute(label: "x", semantic: .position, format: .float3, offset: 0, bufferIndex: 0)
         #expect(a.debugDescription.contains("label: x"))
-        let b = VertexDescriptor.Attribute(semantic: .color, format: .uchar4Normalized, offset: 0, bufferIndex: 0)
+        let b = VertexDescriptor.Attribute(semantic: .color(), format: .uchar4Normalized, offset: 0, bufferIndex: 0)
         #expect(!b.debugDescription.contains("label:"))
     }
 
@@ -47,7 +47,7 @@ struct VertexDescriptorDebugTests {
     @Test func mtlVertexDescriptorConvenienceInit() {
         let attrs = [
             VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
-            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 12, bufferIndex: 0)
+            VertexDescriptor.Attribute(semantic: .texcoord(), format: .float2, offset: 12, bufferIndex: 0)
         ]
         let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 20, stepFunction: .perInstance, stepRate: 2)]
         let desc = VertexDescriptor(attributes: attrs, layouts: layouts)
@@ -65,7 +65,12 @@ struct VertexDescriptorDebugTests {
     }
 
     @Test func semanticCodableRoundTrip() throws {
-        let cases: [VertexDescriptor.Attribute.Semantic] = [.unknown, .position, .normal, .tangent, .bitangent, .texcoord, .color, .userDefined]
+        let cases: [VertexDescriptor.Attribute.Semantic] = [
+            .unknown, .position, .normal, .tangent, .bitangent,
+            .texcoord(), .texcoord(1), .color(), .color(2),
+            .jointIndices(), .jointIndices(1), .jointWeights(), .jointWeights(1),
+            .userDefined
+        ]
         for semantic in cases {
             let data = try JSONEncoder().encode(semantic)
             let decoded = try JSONDecoder().decode(VertexDescriptor.Attribute.Semantic.self, from: data)

@@ -6,14 +6,16 @@ public struct VertexDescriptor: Equatable, Sendable {
     /// A single vertex attribute within a descriptor.
     public struct Attribute: Equatable, Sendable {
         /// The semantic role of a vertex attribute.
-        public enum Semantic: Equatable, Sendable, Codable {
+        public enum Semantic: Hashable, Sendable, Codable {
             case unknown
             case position
             case normal
             case tangent
             case bitangent
-            case texcoord
-            case color
+            case texcoord(Int = 0)
+            case color(Int = 0)
+            case jointIndices(Int = 0)
+            case jointWeights(Int = 0)
             case userDefined
         }
 

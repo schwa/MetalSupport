@@ -388,10 +388,12 @@ macOS and iOS device builds succeed. Found via MetalSprocketsGLTF's GLTFViewer d
 ## 14: VertexDescriptor.Attribute.Semantic has no joints, weights or texcoord set index
 
 +++
-status: new
+status: closed
 priority: medium
 kind: enhancement
 created: 2026-10-13T00:28:26Z
+updated: 2026-10-13T00:34:45Z
+closed: 2026-10-13T00:34:45Z
 +++
 
 VertexDescriptor.Attribute.Semantic has position, normal, tangent, bitangent, texcoord, color, userDefined and unknown. It has no semantics for skinning joints or weights, and no way to tell texcoord 0 from texcoord 1 (or color sets apart). Skinned or multi-UV layouts (glTF JOINTS_n, WEIGHTS_n, TEXCOORD_1) must use userDefined plus a label, so code cannot find these attributes by semantic.

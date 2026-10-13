@@ -336,7 +336,7 @@ struct VertexDescriptorTests {
         let attrs = [
             VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 100, bufferIndex: 0),
             VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 200, bufferIndex: 0),
-            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 300, bufferIndex: 0)
+            VertexDescriptor.Attribute(semantic: .texcoord(), format: .float2, offset: 300, bufferIndex: 0)
         ]
         let layouts = [VertexDescriptor.Layout(bufferIndex: 0)]
         let normalized = VertexDescriptor(attributes: attrs, layouts: layouts).normalizingOffsets()
@@ -348,8 +348,8 @@ struct VertexDescriptorTests {
     @Test func normalizingOffsetsMultipleBuffers() {
         let attrs = [
             VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 100, bufferIndex: 0),
-            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 300, bufferIndex: 1),
-            VertexDescriptor.Attribute(semantic: .color, format: .float4, offset: 400, bufferIndex: 1)
+            VertexDescriptor.Attribute(semantic: .texcoord(), format: .float2, offset: 300, bufferIndex: 1),
+            VertexDescriptor.Attribute(semantic: .color(), format: .float4, offset: 400, bufferIndex: 1)
         ]
         let layouts = [VertexDescriptor.Layout(bufferIndex: 0), VertexDescriptor.Layout(bufferIndex: 1)]
         let normalized = VertexDescriptor(attributes: attrs, layouts: layouts).normalizingOffsets()
@@ -362,7 +362,7 @@ struct VertexDescriptorTests {
         let attrs = [
             VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
             VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 12, bufferIndex: 0),
-            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 24, bufferIndex: 0)
+            VertexDescriptor.Attribute(semantic: .texcoord(), format: .float2, offset: 24, bufferIndex: 0)
         ]
         let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 0, stepFunction: .perVertex, stepRate: 1)]
         let normalized = VertexDescriptor(attributes: attrs, layouts: layouts).normalizingStrides()
@@ -373,8 +373,8 @@ struct VertexDescriptorTests {
         let attrs = [
             VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 100, bufferIndex: 0),
             VertexDescriptor.Attribute(semantic: .normal, format: .float3, offset: 200, bufferIndex: 0),
-            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 300, bufferIndex: 1),
-            VertexDescriptor.Attribute(semantic: .color, format: .uchar4Normalized, offset: 400, bufferIndex: 1)
+            VertexDescriptor.Attribute(semantic: .texcoord(), format: .float2, offset: 300, bufferIndex: 1),
+            VertexDescriptor.Attribute(semantic: .color(), format: .uchar4Normalized, offset: 400, bufferIndex: 1)
         ]
         let layouts = [
             VertexDescriptor.Layout(bufferIndex: 0, stride: 999, stepFunction: .perVertex, stepRate: 1),
@@ -430,7 +430,7 @@ struct VertexDescriptorTests {
     @Test func roundTrip() {
         let attrs = [
             VertexDescriptor.Attribute(semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
-            VertexDescriptor.Attribute(semantic: .texcoord, format: .float2, offset: 12, bufferIndex: 0)
+            VertexDescriptor.Attribute(semantic: .texcoord(), format: .float2, offset: 12, bufferIndex: 0)
         ]
         let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 20, stepFunction: .perVertex, stepRate: 1)]
         let original = VertexDescriptor(attributes: attrs, layouts: layouts)
@@ -445,7 +445,7 @@ struct VertexDescriptorTests {
     @Test func codable() throws {
         let attrs = [
             VertexDescriptor.Attribute(label: "pos", semantic: .position, format: .float3, offset: 0, bufferIndex: 0),
-            VertexDescriptor.Attribute(label: "uv", semantic: .texcoord, format: .float2, offset: 12, bufferIndex: 0)
+            VertexDescriptor.Attribute(label: "uv", semantic: .texcoord(), format: .float2, offset: 12, bufferIndex: 0)
         ]
         let layouts = [VertexDescriptor.Layout(bufferIndex: 0, stride: 20, stepFunction: .perVertex, stepRate: 1)]
         let original = VertexDescriptor(label: "test", attributes: attrs, layouts: layouts)
